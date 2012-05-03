@@ -44,16 +44,22 @@ public class Aggregate {
    * Returns a {@code PTable} that contains the unique elements of this
    * collection mapped to a count of their occurrences.
    */
-  public static <S> PTable<S, Long> count(PCollection<S> collect) {
+	public static <S> PTable<S, Long> count(PCollection<S> collect) {
+		return count(collect, null);
+	}
+	
+	
+	public static <S> PTable<S, Long> count(PCollection<S> collect, Integer numReduceTasks) {
     PTypeFamily tf = collect.getTypeFamily();
-    return collect.parallelDo("Aggregate.count", new MapFn<S, Pair<S, Long>>() {
-      @Override
-      public Pair<S, Long> map(S input) {
-        return Pair.of(input, 1L);
-      }
-    }, tf.tableOf(collect.getPType(), tf.longs()))
-    .groupByKey()
-    .combineValues(CombineFn.<S> SUM_LONGS());
+    PTable<S, Long> pt = collect.parallelDo("Aggregate.count", new MapFn<S, Pair<S, Long>>() {
+        @Override
+        public Pair<S, Long> map(S input) {
+          return Pair.of(input, 1L);
+        }
+      }, tf.tableOf(collect.getPType(), tf.longs()));
+    if (numReduceTasks == null)
+    	return pt.groupByKey().combineValues(CombineFn.<S> SUM_LONGS());
+    else return pt.groupByKey(numReduceTasks).combineValues(CombineFn.<S> SUM_LONGS());
   }
   
   public static class PairValueComparator<K, V> implements Comparator<Pair<K, V>> {
