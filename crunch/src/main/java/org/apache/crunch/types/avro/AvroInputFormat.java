@@ -30,10 +30,10 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for Avro data files. */
-public class AvroInputFormat<T> extends FileInputFormat<AvroWrapper<T>, NullWritable> {
+public class AvroInputFormat<T> extends CombineFileInputFormat<AvroWrapper<T>, NullWritable> {
 
 	@Override
 	protected List<FileStatus> listStatus(JobContext job) throws IOException {
@@ -47,8 +47,16 @@ public class AvroInputFormat<T> extends FileInputFormat<AvroWrapper<T>, NullWrit
 	}
 
 	@Override
+	public List<InputSplit> getSplits(JobContext job) throws IOException {
+		if (getMaxSplitSize(job) == 0) {
+			this.setMaxSplitSize(2 << 28);
+		}
+		return super.getSplits(job);
+	}
+	
+	@Override
 	public RecordReader<AvroWrapper<T>, NullWritable> createRecordReader(InputSplit split,
-		TaskAttemptContext context) throws IOException, InterruptedException {
+		TaskAttemptContext context) throws IOException {
       context.setStatus(split.toString());
       String jsonSchema = context.getConfiguration().get(AvroJob.INPUT_SCHEMA);
       Schema schema = new Schema.Parser().parse(jsonSchema);
