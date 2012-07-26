@@ -18,13 +18,16 @@
 package org.apache.crunch.types.avro;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.crunch.Pair;
 import org.apache.crunch.test.Person;
+import org.apache.crunch.test.StringWrapper;
+import org.junit.Test;
+
 import com.google.common.collect.Lists;
 
 public class AvroTableTypeTest {
@@ -39,14 +42,28 @@ public class AvroTableTypeTest {
 
     Pair<Integer, Person> pair = Pair.of(integerValue, person);
 
-    AvroTableType<Integer, Person> tableType = Avros.tableOf(Avros.ints(),
-        Avros.reflects(Person.class));
+    AvroTableType<Integer, Person> tableType = Avros.tableOf(Avros.ints(), Avros.reflects(Person.class));
 
     Pair<Integer, Person> detachedPair = tableType.getDetachedValue(pair);
 
     assertSame(integerValue, detachedPair.first());
     assertEquals(person, detachedPair.second());
     assertNotSame(person, detachedPair.second());
+  }
+
+  @Test
+  public void testIsReflect_ContainsReflectKey() {
+    assertTrue(Avros.tableOf(Avros.reflects(StringWrapper.class), Avros.ints()).isReflect());
+  }
+
+  @Test
+  public void testIsReflect_ContainsReflectValue() {
+    assertTrue(Avros.tableOf(Avros.ints(), Avros.reflects(StringWrapper.class)).isReflect());
+  }
+
+  @Test
+  public void testReflect_NoReflectKeyOrValue() {
+    assertFalse(Avros.tableOf(Avros.ints(), Avros.ints()).isReflect());
   }
 
 }

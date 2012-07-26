@@ -24,14 +24,6 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
@@ -55,6 +47,14 @@ import org.apache.crunch.io.ReadableSourceTarget;
 import org.apache.crunch.materialize.MaterializableIterable;
 import org.apache.crunch.types.PType;
 import org.apache.crunch.types.writable.WritableTypeFamily;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -68,7 +68,7 @@ public class MRPipeline implements Pipeline {
   private final String name;
   private final Map<PCollectionImpl<?>, Set<Target>> outputTargets;
   private final Map<PCollectionImpl<?>, MaterializableIterable<?>> outputTargetsToMaterialize;
-  private final Path tempDirectory;
+  private Path tempDirectory;
   private int tempFileIndex;
   private int nextAnonymousStageId;
 
@@ -105,6 +105,7 @@ public class MRPipeline implements Pipeline {
   @Override
   public void setConfiguration(Configuration conf) {
     this.conf = conf;
+    this.tempDirectory = createTempDirectory(conf);
   }
 
   @Override
@@ -164,8 +165,8 @@ public class MRPipeline implements Pipeline {
     if (pcollection instanceof PGroupedTableImpl) {
       pcollection = ((PGroupedTableImpl<?, ?>) pcollection).ungroup();
     } else if (pcollection instanceof UnionCollection || pcollection instanceof UnionTable) {
-      pcollection = pcollection.parallelDo("UnionCollectionWrapper",
-          (MapFn) IdentityFn.<Object> getInstance(), pcollection.getPType());
+      pcollection = pcollection.parallelDo("UnionCollectionWrapper", (MapFn) IdentityFn.<Object> getInstance(),
+          pcollection.getPType());
     }
     addOutput((PCollectionImpl<?>) pcollection, target);
   }
@@ -236,8 +237,11 @@ public class MRPipeline implements Pipeline {
   }
 
   /**
-   * Safely cast a PCollection into a PCollectionImpl, including handling the case of UnionCollections.
-   * @param pcollection The PCollection to be cast/transformed
+   * Safely cast a PCollection into a PCollectionImpl, including handling the
+   * case of UnionCollections.
+   * 
+   * @param pcollection
+   *          The PCollection to be cast/transformed
    * @return The PCollectionImpl representation
    */
   private <T> PCollectionImpl<T> toPcollectionImpl(PCollection<T> pcollection) {
@@ -261,21 +265,25 @@ public class MRPipeline implements Pipeline {
   }
 
   private static Path createTempDirectory(Configuration conf) {
-    Path dir = new Path("/tmp/crunch" + RANDOM.nextInt());
+    Path dir = createTemporaryPath(conf);
     try {
       FileSystem.get(conf).mkdirs(dir);
     } catch (IOException e) {
-      LOG.error("Exception creating job output directory", e);
-      throw new RuntimeException(e);
+      throw new RuntimeException("Cannot create job output directory " + dir, e);
     }
     return dir;
+  }
+
+  private static Path createTemporaryPath(Configuration conf) {
+    String baseDir = conf.get(RuntimeParameters.TMP_DIR, "/tmp");
+    return new Path(baseDir, "crunch-" + (RANDOM.nextInt() & Integer.MAX_VALUE));
   }
 
   @Override
   public <T> void writeTextFile(PCollection<T> pcollection, String pathName) {
     // Ensure that this is a writable pcollection instance.
-    pcollection = pcollection.parallelDo("asText", IdentityFn.<T> getInstance(), WritableTypeFamily
-        .getInstance().as(pcollection.getPType()));
+    pcollection = pcollection.parallelDo("asText", IdentityFn.<T> getInstance(),
+        WritableTypeFamily.getInstance().as(pcollection.getPType()));
     write(pcollection, At.textFile(pathName));
   }
 

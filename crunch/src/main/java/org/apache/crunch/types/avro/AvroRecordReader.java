@@ -50,9 +50,9 @@ public class AvroRecordReader<T> extends RecordReader<AvroWrapper<T>, NullWritab
 	private NullWritable value;
 	private Schema schema;
 
-	public AvroRecordReader(Schema schema) {
-		this.schema = schema;
-	}
+  public AvroRecordReader(Schema schema) {
+    this.schema = schema;
+  }
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -121,15 +121,16 @@ public class AvroRecordReader<T> extends RecordReader<AvroWrapper<T>, NullWritab
 		return true;
 	}
 
-	@Override
-	public AvroWrapper<T> getCurrentKey() throws IOException, InterruptedException {
-		return key;
-	}
 
-	@Override
-	public NullWritable getCurrentValue() throws IOException, InterruptedException {
-		return value;
-	}
+  @Override
+  public AvroWrapper<T> getCurrentKey() throws IOException, InterruptedException {
+    return key;
+  }
+
+  @Override
+  public NullWritable getCurrentValue() throws IOException, InterruptedException {
+    return value;
+  }
 
 	@Override
 	public float getProgress() throws IOException {

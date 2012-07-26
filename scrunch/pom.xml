@@ -27,34 +27,24 @@ under the License.
   </parent>
 
   <artifactId>scrunch</artifactId>
-  <name>Apache Incubator Crunch for Scala</name>
-
-  <properties>
-    <maven.compiler.source>1.6</maven.compiler.source>
-    <maven.compiler.target>1.6</maven.compiler.target>
-    <scala.version>2.9.2</scala.version>
-  </properties>
+  <name>Crunch for Scala</name>
 
   <dependencies>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-compiler</artifactId>
-      <version>${scala.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>jline</artifactId>
-      <version>${scala.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.crunch</groupId>
       <artifactId>crunch</artifactId>
-      <version>0.3.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -69,18 +59,15 @@ under the License.
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
-      <version>1.6.1</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.10</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version}</artifactId>
-      <version>1.7.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -88,8 +75,8 @@ under the License.
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.2.1</version>
         <executions>
           <execution>
             <id>jar-with-dependencies</id>
@@ -120,7 +107,6 @@ under the License.
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <version>2.15.0</version>
         <executions>
           <execution>
             <goals>
@@ -140,16 +126,72 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.6</version>
         <configuration>
           <useFile>false</useFile>
           <disableXmlReport>true</disableXmlReport>
-          <argLine>-Xmx512m</argLine>
+          <includes>
+            <include>${project.build.testSourceDirectory}/**/*Test.*</include>
+            <include>${project.build.testSourceDirectory}/**/*Suite.*</include>
+          </includes>
+        </configuration>
+      </plugin>
+      <!-- We put slow-running tests into src/it and run them during the
+           integration-test phase using the failsafe plugin. This way
+           developers can run unit tests conveniently from the IDE or via
+           "mvn package" from the command line without triggering time
+           consuming integration tests. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-test-source</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${basedir}/src/it/scala</source>
+              </sources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>add-test-resource</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>add-test-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                  <resource>
+                    <directory>${basedir}/src/it/resources</directory>
+                  </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <testSourceDirectory>${basedir}/src/it/scala</testSourceDirectory>
+          <useFile>false</useFile>
+          <disableXmlReport>true</disableXmlReport>
           <includes>
             <include>**/*Test.*</include>
             <include>**/*Suite.*</include>
           </includes>
         </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

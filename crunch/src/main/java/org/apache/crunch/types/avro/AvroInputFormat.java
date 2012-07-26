@@ -35,16 +35,16 @@ import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for Avro data files. */
 public class AvroInputFormat<T> extends CombineFileInputFormat<AvroWrapper<T>, NullWritable> {
 
-	@Override
-	protected List<FileStatus> listStatus(JobContext job) throws IOException {
-	  List<FileStatus> result = new ArrayList<FileStatus>();
-      for (FileStatus file : super.listStatus(job)) {
-        if (file.getPath().getName().endsWith(org.apache.avro.mapred.AvroOutputFormat.EXT)) {
-          result.add(file);
-		}
+  @Override
+  protected List<FileStatus> listStatus(JobContext job) throws IOException {
+    List<FileStatus> result = new ArrayList<FileStatus>();
+    for (FileStatus file : super.listStatus(job)) {
+      if (file.getPath().getName().endsWith(org.apache.avro.mapred.AvroOutputFormat.EXT)) {
+        result.add(file);
       }
-      return result;
-	}
+    }
+    return result;
+  }
 
 	@Override
 	public List<InputSplit> getSplits(JobContext job) throws IOException {
