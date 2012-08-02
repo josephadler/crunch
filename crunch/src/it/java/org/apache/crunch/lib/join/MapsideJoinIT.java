@@ -32,10 +32,9 @@ import org.apache.crunch.Pipeline;
 import org.apache.crunch.impl.mem.MemPipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.impl.mr.run.CrunchRuntimeException;
-import org.apache.crunch.test.FileHelper;
 import org.apache.crunch.test.TemporaryPath;
+import org.apache.crunch.test.TemporaryPaths;
 import org.apache.crunch.types.writable.Writables;
-import org.apache.hadoop.conf.Configuration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -83,7 +82,7 @@ public class MapsideJoinIT {
 
   }
   @Rule
-  public TemporaryPath temporaryPath= new TemporaryPath();
+  public TemporaryPath tmpDir = TemporaryPaths.create();
 
   @Test(expected = CrunchRuntimeException.class)
   public void testNonMapReducePipeline() {
@@ -92,7 +91,7 @@ public class MapsideJoinIT {
 
   @Test
   public void testMapsideJoin_RightSideIsEmpty() throws IOException {
-    MRPipeline pipeline = new MRPipeline(MapsideJoinIT.class, temporaryPath.setTempLoc(new Configuration()));
+    MRPipeline pipeline = new MRPipeline(MapsideJoinIT.class, tmpDir.getDefaultConfiguration());
     PTable<Integer, String> customerTable = readTable(pipeline, "customers.txt");
     PTable<Integer, String> orderTable = readTable(pipeline, "orders.txt");
 
@@ -109,7 +108,7 @@ public class MapsideJoinIT {
 
   @Test
   public void testMapsideJoin() throws IOException {
-    runMapsideJoin(new MRPipeline(MapsideJoinIT.class, temporaryPath.setTempLoc(new Configuration())));
+    runMapsideJoin(new MRPipeline(MapsideJoinIT.class, tmpDir.getDefaultConfiguration()));
   }
 
   private void runMapsideJoin(Pipeline pipeline) {
@@ -130,9 +129,9 @@ public class MapsideJoinIT {
     assertEquals(expectedJoinResult, joinedResultList);
   }
 
-  private static PTable<Integer, String> readTable(Pipeline pipeline, String filename) {
+  private PTable<Integer, String> readTable(Pipeline pipeline, String filename) {
     try {
-      return pipeline.readTextFile(FileHelper.createTempCopyOf(filename)).parallelDo("asTable", new LineSplitter(),
+      return pipeline.readTextFile(tmpDir.copyResourceFileName(filename)).parallelDo("asTable", new LineSplitter(),
           Writables.tableOf(Writables.ints(), Writables.strings()));
     } catch (IOException e) {
       throw new RuntimeException(e);

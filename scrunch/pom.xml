@@ -61,13 +61,13 @@ under the License.
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_${scala.version}</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_${scala.version}</artifactId>
+      <groupId>org.apache.crunch</groupId>
+      <artifactId>crunch-test</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -152,6 +152,7 @@ under the License.
             </goals>
             <configuration>
               <sources>
+                <source>${basedir}/src/it/java</source>
                 <source>${basedir}/src/it/scala</source>
               </sources>
             </configuration>

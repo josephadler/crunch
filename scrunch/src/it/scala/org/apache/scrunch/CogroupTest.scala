@@ -18,13 +18,12 @@
 package org.apache.scrunch
 
 import org.apache.crunch.io.{From => from}
-import org.apache.crunch.test.FileHelper
 
 import org.scalatest.junit.JUnitSuite
 import _root_.org.junit.Test
 
-class CogroupTest extends JUnitSuite {
-  val pipeline = Pipeline.mapReduce[CogroupTest]
+class CogroupTest extends ScrunchTestSupport with JUnitSuite {
+  lazy val pipeline = Pipeline.mapReduce[CogroupTest](tempDir.getDefaultConfiguration)
 
   def wordCount(fileName: String) = {
     pipeline.read(from.textFile(fileName))
@@ -32,8 +31,8 @@ class CogroupTest extends JUnitSuite {
   }
 
   @Test def cogroup {
-    val shakespeare = FileHelper.createTempCopyOf("shakes.txt")
-    val maugham = FileHelper.createTempCopyOf("maugham.txt")
+    val shakespeare = tempDir.copyResourceFileName("shakes.txt")
+    val maugham = tempDir.copyResourceFileName("maugham.txt")
     val diffs = wordCount(shakespeare).cogroup(wordCount(maugham))
         .map((k, v) => (k, (v._1.sum - v._2.sum))).materialize
     assert(diffs.exists(_ == ("the", -11390)))

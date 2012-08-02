@@ -18,21 +18,20 @@
 package org.apache.scrunch
 
 import org.apache.crunch.io.{From => from}
-import org.apache.crunch.test.FileHelper
 
 import org.scalatest.junit.JUnitSuite
 import _root_.org.junit.Test
 
-class UnionTest extends JUnitSuite {
-  val pipeline = Pipeline.mapReduce[UnionTest]
-  val shakespeare = FileHelper.createTempCopyOf("shakes.txt")
-  val maugham = FileHelper.createTempCopyOf("maugham.txt")
+class UnionTest extends ScrunchTestSupport with JUnitSuite {
+  lazy val pipeline = Pipeline.mapReduce[UnionTest](tempDir.getDefaultConfiguration)
 
   def wordCount(col: PCollection[String]) = {
     col.flatMap(_.toLowerCase.split("\\W+")).count
   }
 
   @Test def testUnionCollection {
+    val shakespeare = tempDir.copyResourceFileName("shakes.txt")
+    val maugham = tempDir.copyResourceFileName("maugham.txt")
     val union = pipeline.read(from.textFile(shakespeare)).union(
         pipeline.read(from.textFile(maugham)))
     val wc = wordCount(union).materialize
@@ -41,6 +40,8 @@ class UnionTest extends JUnitSuite {
   }
 
   @Test def testUnionTable {
+    val shakespeare = tempDir.copyResourceFileName("shakes.txt")
+    val maugham = tempDir.copyResourceFileName("maugham.txt")
     val wcs = wordCount(pipeline.read(from.textFile(shakespeare)))
     val wcm = wordCount(pipeline.read(from.textFile(maugham)))
     val wc = wcs.union(wcm).groupByKey.combine(v => v.sum).materialize

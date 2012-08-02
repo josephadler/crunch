@@ -25,15 +25,14 @@ import java.util.List;
 import org.apache.crunch.impl.mem.MemPipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.lib.Aggregate;
-import org.apache.crunch.test.FileHelper;
 import org.apache.crunch.test.TemporaryPath;
+import org.apache.crunch.test.TemporaryPaths;
 import org.apache.crunch.types.PType;
 import org.apache.crunch.types.PTypeFamily;
 import org.apache.crunch.types.avro.AvroTypeFamily;
 import org.apache.crunch.types.avro.Avros;
 import org.apache.crunch.types.writable.WritableTypeFamily;
 import org.apache.crunch.util.PTypes;
-import org.apache.hadoop.conf.Configuration;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -71,34 +70,41 @@ public class PageRankIT {
   }
 
   @Rule
-  public TemporaryPath temporaryPath = new TemporaryPath();
-
+  public TemporaryPath tmpDir = TemporaryPaths.create();
+  
   @Test
   public void testAvroReflect() throws Exception {
     PTypeFamily tf = AvroTypeFamily.getInstance();
     PType<PageRankData> prType = Avros.reflects(PageRankData.class);
-    run(new MRPipeline(PageRankIT.class, temporaryPath.setTempLoc(new Configuration())), prType, tf);
+    String urlInput = tmpDir.copyResourceFileName("urls.txt");
+    run(new MRPipeline(PageRankIT.class, tmpDir.getDefaultConfiguration()),
+        urlInput, prType, tf);
   }
 
   @Test
   public void testAvroMReflectInMemory() throws Exception {
     PTypeFamily tf = AvroTypeFamily.getInstance();
     PType<PageRankData> prType = Avros.reflects(PageRankData.class);
-    run(MemPipeline.getInstance(), prType, tf);
+    String urlInput = tmpDir.copyResourceFileName("urls.txt");
+    run(MemPipeline.getInstance(), urlInput, prType, tf);
   }
 
   @Test
   public void testAvroJSON() throws Exception {
     PTypeFamily tf = AvroTypeFamily.getInstance();
     PType<PageRankData> prType = PTypes.jsonString(PageRankData.class, tf);
-    run(new MRPipeline(PageRankIT.class, temporaryPath.setTempLoc(new Configuration())), prType, tf);
+    String urlInput = tmpDir.copyResourceFileName("urls.txt");
+    run(new MRPipeline(PageRankIT.class, tmpDir.getDefaultConfiguration()),
+        urlInput, prType, tf);
   }
 
   @Test
   public void testWritablesJSON() throws Exception {
     PTypeFamily tf = WritableTypeFamily.getInstance();
     PType<PageRankData> prType = PTypes.jsonString(PageRankData.class, tf);
-    run(new MRPipeline(PageRankIT.class, temporaryPath.setTempLoc(new Configuration())), prType, tf);
+    String urlInput = tmpDir.copyResourceFileName("urls.txt");
+    run(new MRPipeline(PageRankIT.class, tmpDir.getDefaultConfiguration()),
+        urlInput, prType, tf);
   }
 
   public static PTable<String, PageRankData> pageRank(PTable<String, PageRankData> input, final float d) {
@@ -128,8 +134,8 @@ public class PageRankIT {
         }, input.getPTableType());
   }
 
-  public static void run(Pipeline pipeline, PType<PageRankData> prType, PTypeFamily ptf) throws Exception {
-    String urlInput = FileHelper.createTempCopyOf("urls.txt");
+  public static void run(Pipeline pipeline, String urlInput,
+      PType<PageRankData> prType, PTypeFamily ptf) throws Exception {
     PTable<String, PageRankData> scores = pipeline.readTextFile(urlInput)
         .parallelDo(new MapFn<String, Pair<String, String>>() {
           @Override
