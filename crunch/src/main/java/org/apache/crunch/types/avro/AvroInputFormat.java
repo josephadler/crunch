@@ -30,10 +30,11 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
+//import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
 /** An {@link org.apache.hadoop.mapreduce.InputFormat} for Avro data files. */
-public class AvroInputFormat<T> extends CombineFileInputFormat<AvroWrapper<T>, NullWritable> {
+public class AvroInputFormat<T> extends /*CombineFileInputFormat<AvroWrapper<T>, NullWritable> */ FileInputFormat<AvroWrapper<T>, NullWritable>{
 
   @Override
   protected List<FileStatus> listStatus(JobContext job) throws IOException {
@@ -46,13 +47,17 @@ public class AvroInputFormat<T> extends CombineFileInputFormat<AvroWrapper<T>, N
     return result;
   }
 
-	@Override
+/*
+  @Override
 	public List<InputSplit> getSplits(JobContext job) throws IOException {
-		if (getMaxSplitSize(job) == 0) {
-			this.setMaxSplitSize(2 << 28);
+	  long mss = getMaxSplitSize(job);
+	  System.out.printf("max split size from job = %d\n",mss);
+	  if (mss == 0) {
+	    super.setMaxSplitSize(1 << 24);
 		}
 		return super.getSplits(job);
 	}
+*/
 	
 	@Override
 	public RecordReader<AvroWrapper<T>, NullWritable> createRecordReader(InputSplit split,

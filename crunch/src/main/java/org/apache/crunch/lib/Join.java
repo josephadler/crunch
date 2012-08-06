@@ -57,6 +57,11 @@ public class Join {
     return innerJoin(left, right);
   }
 
+  public static <K, U, V> PTable<K, Pair<U, V>> join(PTable<K, U> left, PTable<K, V> right, Integer numReducers) {
+	    return innerJoin(left, right, numReducers);
+	  }
+
+  
   /**
    * Performs an inner join on the specified {@link PTable}s.
    * 
@@ -78,6 +83,11 @@ public class Join {
     return join(left, right, new InnerJoinFn<K, U, V>(left.getKeyType(), left.getValueType()));
   }
 
+  public static <K, U, V> PTable<K, Pair<U, V>> innerJoin(PTable<K, U> left, PTable<K, V> right, Integer numReducers) {
+	    return join(left, right, new InnerJoinFn<K, U, V>(left.getKeyType(), left.getValueType()), numReducers);
+	  }
+
+  
   /**
    * Performs a left outer join on the specified {@link PTable}s.
    * 
@@ -145,16 +155,23 @@ public class Join {
   }
 
   public static <K, U, V> PTable<K, Pair<U, V>> join(PTable<K, U> left, PTable<K, V> right, JoinFn<K, U, V> joinFn) {
+	  return join(left, right, joinFn, null);
+  }
+  
+  public static <K, U, V> PTable<K, Pair<U, V>> join(PTable<K, U> left, PTable<K, V> right, JoinFn<K, U, V> joinFn,
+		  Integer numReducers) {
     PTypeFamily ptf = left.getTypeFamily();
-    PGroupedTable<Pair<K, Integer>, Pair<U, V>> grouped = preJoin(left, right);
+    PGroupedTable<Pair<K, Integer>, Pair<U, V>> grouped = preJoin(left, right, numReducers);
     PTableType<K, Pair<U, V>> ret = ptf
         .tableOf(left.getKeyType(), ptf.pairs(left.getValueType(), right.getValueType()));
 
     return grouped.parallelDo(joinFn.getJoinType() + grouped.getName(), joinFn, ret);
   }
+  
+  private static <K, U, V> PGroupedTable<Pair<K, Integer>, Pair<U, V>> preJoin(PTable<K, U> left, PTable<K, V> right, 
+		  Integer numReducers) {
 
-  private static <K, U, V> PGroupedTable<Pair<K, Integer>, Pair<U, V>> preJoin(PTable<K, U> left, PTable<K, V> right) {
-    PTypeFamily ptf = left.getTypeFamily();
+	  PTypeFamily ptf = left.getTypeFamily();
     PTableType<Pair<K, Integer>, Pair<U, V>> ptt = ptf.tableOf(ptf.pairs(left.getKeyType(), ptf.ints()),
         ptf.pairs(left.getValueType(), right.getValueType()));
 
@@ -175,7 +192,9 @@ public class Join {
 
     GroupingOptions.Builder optionsBuilder = GroupingOptions.builder();
     optionsBuilder.partitionerClass(JoinUtils.getPartitionerClass(ptf));
-
+    if (numReducers !=null)
+    	optionsBuilder.numReducers(numReducers);
+    
     return (tag1.union(tag2)).groupByKey(optionsBuilder.build());
   }
 }
