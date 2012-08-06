@@ -322,11 +322,13 @@ under the License.
 
   <build>
     <plugins>
-      <plugin>
+      <!--
+       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-      </plugin>
-      <plugin>
+       </plugin>
+     --> 
+     <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
         <inherited>false</inherited> 
@@ -370,19 +372,22 @@ under the License.
 
     <pluginManagement>
       <plugins>
+      <!--
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <version>0.8</version>
 	  <configuration>
 	    <excludes>
+	      <exclude>pom.xml</exclude>
 	      <exclude>.git/**</exclude>
 	      <exclude>.gitignore</exclude>
 	      <exclude>.repository/</exclude>
 	      <exclude>**/resources/*.txt</exclude>
 	      <exclude>**/resources/*.avro</exclude>
-	      <exclude>**/scripts/scrunch</exclude> <!-- FIXME! -->
+	      <exclude>**/scripts/scrunch</exclude>
 	    </excludes>
+	    <useDefaultExcludes>true</useDefaultExcludes>
 	  </configuration>
           <executions>
             <execution>
@@ -394,6 +399,7 @@ under the License.
             </execution>
           </executions>
         </plugin>
+        -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
