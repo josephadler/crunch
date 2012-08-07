@@ -15,14 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.scrunch;
+package org.apache.scrunch
 
-import org.apache.crunch.impl.mr.run.RuntimeParameters;
-import org.apache.crunch.test.TemporaryPath;
+import _root_.org.scalatest.junit.JUnitSuite
+import _root_.org.junit.Test
 
-import org.junit.Rule;
+class MapKeysFnTest extends JUnitSuite {
 
-public class ScrunchTestSupport {
-  @Rule
-  public TemporaryPath tempDir = new TemporaryPath(RuntimeParameters.TMP_DIR, "hadoop.tmp.dir");
+  @Test
+  def testMapKeys() {
+    val orig = Mem.tableOf(1 -> "a", 2 -> "b", 3 -> "c")
+    val inc = orig.mapKeys(_ + 1)
+
+    assert(
+      inc.keys.materialize
+        .zip(orig.keys.materialize)
+        .forall(x => x._1 == x._2 + 1))
+  }
+
 }

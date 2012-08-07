@@ -15,28 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.scrunch
+package org.apache.crunch.test;
 
-import org.apache.crunch.io.{From => from, To => to}
-import org.apache.crunch.test.CrunchTestSupport
+import org.junit.Rule;
 
-import org.scalatest.junit.JUnitSuite
-import _root_.org.junit.Test
-
-class TopTest extends CrunchTestSupport with JUnitSuite {
-
-  @Test def topInMem {
-    val ptable = Mem.tableOf(("foo", 17), ("bar", 29), ("baz", 1729))
-    assert(ptable.top(1, true).materialize.head == ("baz", 1729))
-  }
-
-  @Test def top2 {
-    val pipeline = Pipeline.mapReduce[TopTest](tempDir.getDefaultConfiguration)
-    val input = tempDir.copyResourceFileName("shakes.txt")
-
-    val wc = pipeline.read(from.textFile(input))
-        .flatMap(_.toLowerCase.split("\\s+"))
-        .filter(!_.isEmpty()).count
-    assert(wc.top(10, true).materialize.exists(_ == ("is", 205)))
-  }
+/**
+ * A temporary workaround for Scala tests to use when working with Rule annotations
+ * until it gets fixed in JUnit 4.11.
+ */
+public class CrunchTestSupport {
+  @Rule
+  public TemporaryPath tempDir = new TemporaryPath(
+      "crunch.tmp.dir", "hadoop.tmp.dir");
 }

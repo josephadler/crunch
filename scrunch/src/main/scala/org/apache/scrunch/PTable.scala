@@ -23,7 +23,7 @@ import scala.collection.JavaConversions._
 
 import org.apache.crunch.{DoFn, Emitter, FilterFn, MapFn}
 import org.apache.crunch.{GroupingOptions, PTable => JTable, Pair => CPair}
-import org.apache.crunch.lib.{Join, Aggregate, Cogroup, PTables}
+import org.apache.crunch.lib.{Join, Cartesian, Aggregate, Cogroup, PTables}
 import org.apache.scrunch.interpreter.InterpreterRunner
 
 class PTable[K, V](val native: JTable[K, V]) extends PCollectionLike[CPair[K, V], PTable[K, V], JTable[K, V]] {
@@ -42,6 +42,12 @@ class PTable[K, V](val native: JTable[K, V]) extends PCollectionLike[CPair[K, V]
     val ptf = getTypeFamily()
     val ptype = ptf.tableOf(native.getKeyType(), pt.get(ptf))
     parallelDo(mapValuesFn[K, V, T](f), ptype)
+  }
+
+  def mapKeys[T](f: K => T)(implicit pt: PTypeH[T]) = {
+    val ptf = getTypeFamily()
+    val ptype = ptf.tableOf(pt.get(ptf), native.getValueType())
+    parallelDo(mapKeysFn[K, V, T](f), ptype)
   }
 
   def flatMap[T, To](f: (K, V) => Traversable[T])
@@ -100,6 +106,13 @@ class PTable[K, V](val native: JTable[K, V]) extends PCollectionLike[CPair[K, V]
     join[V2](Join.fullJoin[K, V, V2](_, _), other)
   }
 
+  def cross[K2, V2](other: PTable[K2, V2]): PTable[(K, K2), (V, V2)] = {
+    val ptf = getTypeFamily()
+    val inter = new PTable(Cartesian.cross(this.native, other.native))
+    val f = (k: CPair[K,K2], v: CPair[V,V2]) => CPair.of((k.first(), k.second()), (v.first(), v.second()))
+    inter.parallelDo(mapFn(f), ptf.tableOf(ptf.tuple2(keyType, other.keyType), ptf.tuple2(valueType, other.valueType)))
+  }
+
   def top(limit: Int, maximize: Boolean) = {
     wrap(Aggregate.top(this.native, limit, maximize))
   }
@@ -119,6 +132,11 @@ class PTable[K, V](val native: JTable[K, V]) extends PCollectionLike[CPair[K, V]
   def materialize(): Iterable[(K, V)] = {
     InterpreterRunner.addReplJarsToJob(native.getPipeline().getConfiguration())
     native.materialize.view.map(x => (x.first, x.second))
+  }
+
+  def materializeToMap(): Map[K, V] = {
+    InterpreterRunner.addReplJarsToJob(native.getPipeline().getConfiguration())
+    native.materializeToMap().view.toMap
   }
 
   def keyType() = native.getPTableType().getKeyType()
@@ -146,6 +164,10 @@ trait SMapTableValuesFn[K, V, T] extends MapFn[CPair[K, V], CPair[K, T]] with Fu
   override def map(input: CPair[K, V]) = CPair.of(input.first(), apply(input.second()))
 }
 
+trait SMapTableKeysFn[K, V, T] extends MapFn[CPair[K, V], CPair[T, V]] with Function1[K, T] {
+  override def map(input: CPair[K, V]) = CPair.of(apply(input.first()), input.second())
+}
+
 object PTable {
   def filterFn[K, V](fn: (K, V) => Boolean) = {
     new SFilterTableFn[K, V] { def apply(k: K, v: V) = fn(k, v) }
@@ -153,6 +175,10 @@ object PTable {
 
   def mapValuesFn[K, V, T](fn: V => T) = {
     new SMapTableValuesFn[K, V, T] { def apply(v: V) = fn(v) }
+  }
+
+  def mapKeysFn[K, V, T](fn: K => T) = {
+    new SMapTableKeysFn[K, V, T] { def apply(k: K) = fn(k) }
   }
 
   def mapFn[K, V, T](fn: (K, V) => T) = {
