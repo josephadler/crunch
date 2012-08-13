@@ -17,7 +17,9 @@
  */
 package org.apache.crunch.types.avro;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -25,11 +27,16 @@ import org.apache.avro.specific.SpecificRecord;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.SourceTarget;
+import org.apache.crunch.Tuple;
 import org.apache.crunch.fn.IdentityFn;
 import org.apache.crunch.io.avro.AvroFileSourceTarget;
+import org.apache.crunch.types.CollectionDeepCopier;
 import org.apache.crunch.types.Converter;
+import org.apache.crunch.types.DeepCopier;
+import org.apache.crunch.types.MapDeepCopier;
 import org.apache.crunch.types.PType;
 import org.apache.crunch.types.PTypeFamily;
+import org.apache.crunch.types.TupleDeepCopier;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
@@ -50,13 +57,14 @@ public class AvroType<T> implements PType<T> {
   private final MapFn baseInputMapFn;
   private final MapFn baseOutputMapFn;
   private final List<PType> subTypes;
-  private AvroDeepCopier<T> deepCopier;
+  private DeepCopier<T> deepCopier;
 
   public AvroType(Class<T> typeClass, Schema schema, PType... ptypes) {
     this(typeClass, schema, IdentityFn.getInstance(), IdentityFn.getInstance(), ptypes);
   }
 
-  public AvroType(Class<T> typeClass, Schema schema, MapFn inputMapFn, MapFn outputMapFn, PType... ptypes) {
+  public AvroType(Class<T> typeClass, Schema schema, MapFn inputMapFn, MapFn outputMapFn,
+      PType... ptypes) {
     this.typeClass = typeClass;
     this.schema = Preconditions.checkNotNull(schema);
     this.schemaString = schema.toString();
@@ -125,7 +133,8 @@ public class AvroType<T> implements PType<T> {
       return false;
     }
 
-    return !(typeClass.equals(GenericData.Record.class) || SpecificRecord.class.isAssignableFrom(typeClass));
+    return !(typeClass.equals(GenericData.Record.class) || SpecificRecord.class
+        .isAssignableFrom(typeClass));
   }
 
   public MapFn<Object, T> getInputMapFn() {
@@ -146,9 +155,15 @@ public class AvroType<T> implements PType<T> {
     return new AvroFileSourceTarget<T>(path, this);
   }
 
-  private AvroDeepCopier<T> getDeepCopier() {
+  private DeepCopier<T> getDeepCopier() {
     if (deepCopier == null) {
-      if (isSpecific()) {
+      if (Tuple.class.isAssignableFrom(this.typeClass)) {
+        deepCopier = new TupleDeepCopier(this);
+      } else if (Map.class.isAssignableFrom(this.typeClass)){
+        deepCopier = new MapDeepCopier(this.subTypes.get(0));
+      } else if (Collection.class.isAssignableFrom(this.typeClass)){
+        deepCopier = new CollectionDeepCopier(this.subTypes.get(0));
+      } else if (isSpecific()) {
         deepCopier = new AvroDeepCopier.AvroSpecificDeepCopier<T>(typeClass, getSchema());
       } else if (isGeneric()) {
         deepCopier = (AvroDeepCopier<T>) new AvroDeepCopier.AvroGenericDeepCopier(getSchema());
@@ -160,7 +175,8 @@ public class AvroType<T> implements PType<T> {
   }
 
   public T getDetachedValue(T value) {
-    if (this.baseInputMapFn instanceof IdentityFn && !Avros.isPrimitive(this)) {
+
+    if (!Avros.isPrimitive(this)) {
       return getDeepCopier().deepCopy(value);
     }
     return value;

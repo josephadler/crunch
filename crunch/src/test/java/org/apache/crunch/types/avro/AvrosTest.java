@@ -17,6 +17,7 @@
  */
 package org.apache.crunch.types.avro;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -37,6 +38,7 @@ import org.apache.crunch.Tuple3;
 import org.apache.crunch.Tuple4;
 import org.apache.crunch.TupleN;
 import org.apache.crunch.test.Person;
+import org.apache.crunch.test.StringWrapper;
 import org.apache.crunch.types.PTableType;
 import org.apache.crunch.types.PType;
 import org.apache.hadoop.io.IntWritable;
@@ -216,8 +218,14 @@ public class AvrosTest {
   }
 
   @Test
-  public void testIsPrimitive_True() {
+  public void testIsPrimitive_PrimitiveMappedType() {
     assertTrue(Avros.isPrimitive(Avros.ints()));
+  }
+  
+  @Test
+  public void testIsPrimitive_TruePrimitiveValue(){
+    AvroType truePrimitiveAvroType = new AvroType(int.class, Schema.create(Type.INT));
+    assertTrue(Avros.isPrimitive(truePrimitiveAvroType));
   }
 
   @Test
@@ -284,6 +292,23 @@ public class AvrosTest {
 
     assertEquals(pair, doubleMappedPair);
 
+  }
+  
+  @Test
+  public void testPairOutputMapFn_VerifyNoObjectReuse(){
+    StringWrapper stringWrapper = new StringWrapper("Test");
+    
+    Pair<Integer,StringWrapper> pair = Pair.of(1, stringWrapper);
+    
+    AvroType<Pair<Integer, StringWrapper>> pairType = Avros.pairs(Avros.ints(), Avros.reflects(StringWrapper.class));
+    
+    pairType.getOutputMapFn().initialize();
+    
+    Object outputMappedValueA = pairType.getOutputMapFn().map(pair);
+    Object outputMappedValueB = pairType.getOutputMapFn().map(pair);
+    
+    assertEquals(outputMappedValueA, outputMappedValueB);
+    assertNotSame(outputMappedValueA, outputMappedValueB);
   }
 
 }

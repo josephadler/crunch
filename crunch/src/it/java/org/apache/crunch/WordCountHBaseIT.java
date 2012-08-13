@@ -20,10 +20,12 @@ package org.apache.crunch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Random;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -98,6 +100,27 @@ public class WordCountHBaseIT {
     conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, "/1");
     conf.setInt("hbase.master.info.port", -1);
     conf.setInt("hbase.regionserver.info.port", -1);
+    
+    // Workaround for HBASE-5711, we need to set config value dfs.datanode.data.dir.perm
+    // equal to the permissions of the temp dirs on the filesystem. These temp dirs were
+    // probably created using this process' umask. So we guess the temp dir permissions as
+    // 0777 & ~umask, and use that to set the config value.
+    try {
+      Process process = Runtime.getRuntime().exec("/bin/sh -c umask");
+      BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      int rc = process.waitFor();
+      if(rc == 0) {
+        String umask = br.readLine();
+
+        int umaskBits = Integer.parseInt(umask, 8);
+        int permBits = 0777 & ~umaskBits;
+        String perms = Integer.toString(permBits, 8);
+
+        conf.set("dfs.datanode.data.dir.perm", perms);
+      }
+    } catch (Exception e) {
+      // ignore errors, we might not be running on POSIX, or "sh" might not be on the path
+    }
 
     hbaseTestUtil.startMiniZKCluster();
     hbaseTestUtil.startMiniCluster();
@@ -116,16 +139,16 @@ public class WordCountHBaseIT {
       }
 
       // Create a programmatic container for this jar.
-      JarOutputStream jos = new JarOutputStream(new FileOutputStream("WordCountHBaseTest.jar"));
+      JarOutputStream jos = new JarOutputStream(new FileOutputStream("WordCountHBaseIT.jar"));
       File baseDir = new File("target/test-classes");
       String prefix = "org/apache/crunch/";
-      jarUp(jos, baseDir, prefix + "WordCountHBaseTest.class");
-      jarUp(jos, baseDir, prefix + "WordCountHBaseTest$1.class");
-      jarUp(jos, baseDir, prefix + "WordCountHBaseTest$2.class");
+      jarUp(jos, baseDir, prefix + "WordCountHBaseIT.class");
+      jarUp(jos, baseDir, prefix + "WordCountHBaseIT$1.class");
+      jarUp(jos, baseDir, prefix + "WordCountHBaseIT$2.class");
       jos.close();
 
-      Path target = new Path(tmpPath, "WordCountHBaseTest.jar");
-      fs.copyFromLocalFile(true, new Path("WordCountHBaseTest.jar"), target);
+      Path target = new Path(tmpPath, "WordCountHBaseIT.jar");
+      fs.copyFromLocalFile(true, new Path("WordCountHBaseIT.jar"), target);
       DistributedCache.addFileToClassPath(target, conf, fs);
     }
   }
