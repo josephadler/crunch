@@ -15,34 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.types;
+package org.apache.crunch.io.hbase;
 
-import java.io.Serializable;
+import org.apache.crunch.Target;
 
 /**
- * Performs deep copies of values.
- * 
- * @param <T>
- *          The type of value that will be copied
+ * Static factory methods for creating HBase {@link Target} types.
  */
-public interface DeepCopier<T> extends Serializable {
+public class ToHBase {
 
-  /**
-   * Create a deep copy of a value.
-   * 
-   * @param source
-   *          The value to be copied
-   * @return The deep copy of the value
-   */
-  T deepCopy(T source);
-  
-  static class NoOpDeepCopier<V> implements DeepCopier<V> {
-
-    @Override
-    public V deepCopy(V source) {
-      return source;
-    }
-    
+  public static Target table(String table) {
+    return new HBaseTarget(table);
   }
-  
+
 }

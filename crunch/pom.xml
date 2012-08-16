@@ -27,7 +27,7 @@ under the License.
   </parent>
 
   <artifactId>crunch</artifactId>
-  <name>Crunch Core</name>
+  <name>Apache Crunch Core</name>
 
   <dependencies>
     <dependency>
@@ -54,6 +54,11 @@ under the License.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
     </dependency>
 
     <dependency>
@@ -94,7 +99,13 @@ under the License.
       <artifactId>crunch-test</artifactId>
       <scope>test</scope>
     </dependency>
-           
+
+    <dependency>
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+      <scope>test</scope> <!-- only needed for LocalJobRunner -->
+    </dependency>
+
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
@@ -110,38 +121,10 @@ under the License.
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>test-compile</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.directory}/lib</outputDirectory>
-              <excludeArtifactIds>crunch-test</excludeArtifactIds>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <!-- We put slow-running tests into src/it and run them during the
            integration-test phase using the failsafe plugin. This way
            developers can run unit tests conveniently from the IDE or via

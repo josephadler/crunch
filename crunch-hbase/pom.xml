@@ -26,48 +26,46 @@ under the License.
     <version>0.3.0-incubating-SNAPSHOT</version>
   </parent>
 
-  <artifactId>crunch-scrunch</artifactId>
-  <name>Apache Crunch for Scala</name>
+  <artifactId>crunch-hbase</artifactId>
+  <name>Apache Crunch HBase Support</name>
 
   <dependencies>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-compiler</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>jline</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.apache.crunch</groupId>
       <artifactId>crunch</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
-      <groupId>org.apache.hbase</groupId>
-      <artifactId>hbase</artifactId>
-      <scope>provided</scope>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_${scala.version}</artifactId>
-      <scope>test</scope>
-    </dependency>
+
     <dependency>
       <groupId>org.apache.crunch</groupId>
       <artifactId>crunch-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase</artifactId>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -76,64 +74,18 @@ under the License.
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
+        <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
-            <id>jar-with-dependencies</id>
-            <phase>package</phase>
+            <phase>pre-integration-test</phase>
             <goals>
-              <goal>single</goal>
+              <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <descriptorRefs>
-                <descriptorRef>jar-with-dependencies</descriptorRef>
-              </descriptorRefs>
-            </configuration>
-          </execution>
-          <execution>
-            <id>make-assembly</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <descriptors>
-                <descriptor>${basedir}/src/main/assembly/release.xml</descriptor>
-              </descriptors>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-            <configuration>
-              <args>
-                <arg>-deprecation</arg>
-                <arg>-dependencyfile</arg>
-                <arg>${project.build.directory}/.scala_dependencies</arg>
-              </args>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <useFile>false</useFile>
-          <disableXmlReport>true</disableXmlReport>
-          <includes>
-            <include>${project.build.testSourceDirectory}/**/*Test.*</include>
-            <include>${project.build.testSourceDirectory}/**/*Suite.*</include>
-          </includes>
-        </configuration>
       </plugin>
       <!-- We put slow-running tests into src/it and run them during the
            integration-test phase using the failsafe plugin. This way
@@ -153,7 +105,6 @@ under the License.
             <configuration>
               <sources>
                 <source>${basedir}/src/it/java</source>
-                <source>${basedir}/src/it/scala</source>
               </sources>
             </configuration>
           </execution>
@@ -177,13 +128,7 @@ under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
-          <testSourceDirectory>${basedir}/src/it/scala</testSourceDirectory>
-          <useFile>false</useFile>
-          <disableXmlReport>true</disableXmlReport>
-          <includes>
-            <include>**/*Test.*</include>
-            <include>**/*Suite.*</include>
-          </includes>
+          <testSourceDirectory>${basedir}/src/it/java</testSourceDirectory>
         </configuration>
         <executions>
           <execution>
@@ -196,4 +141,5 @@ under the License.
       </plugin>
     </plugins>
   </build>
+
 </project>

@@ -15,34 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.types;
+package org.apache.crunch.test;
 
-import java.io.Serializable;
+import org.apache.crunch.impl.mr.run.RuntimeParameters;
+import org.apache.hadoop.conf.Configuration;
+
 
 /**
- * Performs deep copies of values.
- * 
- * @param <T>
- *          The type of value that will be copied
+ * Utilities for working with {@link TemporaryPath}.
  */
-public interface DeepCopier<T> extends Serializable {
+public final class TemporaryPaths {
 
   /**
-   * Create a deep copy of a value.
-   * 
-   * @param source
-   *          The value to be copied
-   * @return The deep copy of the value
+   * Static factory returning a {@link TemporaryPath} with adjusted
+   * {@link Configuration} properties.
    */
-  T deepCopy(T source);
-  
-  static class NoOpDeepCopier<V> implements DeepCopier<V> {
-
-    @Override
-    public V deepCopy(V source) {
-      return source;
-    }
-    
+  public static TemporaryPath create() {
+    return new TemporaryPath(RuntimeParameters.TMP_DIR, "hadoop.tmp.dir");
   }
-  
+
+  private TemporaryPaths() {
+    // nothing
+  }
 }
