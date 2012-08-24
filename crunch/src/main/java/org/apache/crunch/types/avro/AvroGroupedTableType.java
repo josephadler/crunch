@@ -82,7 +82,10 @@ public class AvroGroupedTableType<K, V> extends PGroupedTableType<K, V> {
     String schemaJson = att.getSchema().toString();
     Configuration conf = job.getConfiguration();
 
-    if (att.isReflect()) {
+    if (att.hasReflect()) {
+      if (att.hasSpecific()) {
+        Avros.checkCombiningSpecificAndReflectionSchemas();
+      }
       conf.setBoolean(AvroJob.MAP_OUTPUT_IS_REFLECT, true);
     }
     conf.set(AvroJob.MAP_OUTPUT_SCHEMA, schemaJson);
@@ -95,7 +98,8 @@ public class AvroGroupedTableType<K, V> extends PGroupedTableType<K, V> {
 
     Avros.configureReflectDataFactory(conf);
 
-    Collection<String> serializations = job.getConfiguration().getStringCollection("io.serializations");
+    Collection<String> serializations = job.getConfiguration().getStringCollection(
+        "io.serializations");
     if (!serializations.contains(SafeAvroSerialization.class.getName())) {
       serializations.add(SafeAvroSerialization.class.getName());
       job.getConfiguration().setStrings("io.serializations", serializations.toArray(new String[0]));

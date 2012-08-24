@@ -42,7 +42,7 @@ public class AvroTypeTest {
 
   @Test
   public void testIsSpecific_SpecificData() {
-    assertTrue(Avros.records(Person.class).isSpecific());
+    assertTrue(Avros.records(Person.class).hasSpecific());
   }
 
   @Test
@@ -52,7 +52,7 @@ public class AvroTypeTest {
 
   @Test
   public void testIsSpecific_GenericData() {
-    assertFalse(Avros.generics(Person.SCHEMA$).isSpecific());
+    assertFalse(Avros.generics(Person.SCHEMA$).hasSpecific());
   }
 
   @Test
@@ -62,7 +62,7 @@ public class AvroTypeTest {
 
   @Test
   public void testIsSpecific_NonAvroClass() {
-    assertFalse(Avros.ints().isSpecific());
+    assertFalse(Avros.ints().hasSpecific());
   }
 
   @Test
@@ -72,7 +72,7 @@ public class AvroTypeTest {
 
   @Test
   public void testIsSpecific_SpecificAvroTable() {
-    assertFalse(Avros.tableOf(Avros.strings(), Avros.records(Person.class)).isSpecific());
+    assertTrue(Avros.tableOf(Avros.strings(), Avros.records(Person.class)).hasSpecific());
   }
 
   @Test
@@ -82,7 +82,7 @@ public class AvroTypeTest {
 
   @Test
   public void testIsSpecific_GenericAvroTable() {
-    assertFalse(Avros.tableOf(Avros.strings(), Avros.generics(Person.SCHEMA$)).isSpecific());
+    assertFalse(Avros.tableOf(Avros.strings(), Avros.generics(Person.SCHEMA$)).hasSpecific());
   }
 
   @Test
@@ -92,52 +92,52 @@ public class AvroTypeTest {
 
   @Test
   public void testIsReflect_GenericType() {
-    assertFalse(Avros.generics(Person.SCHEMA$).isReflect());
+    assertFalse(Avros.generics(Person.SCHEMA$).hasReflect());
   }
 
   @Test
   public void testIsReflect_SpecificType() {
-    assertFalse(Avros.records(Person.class).isReflect());
+    assertFalse(Avros.records(Person.class).hasReflect());
   }
 
   @Test
   public void testIsReflect_ReflectSimpleType() {
-    assertTrue(Avros.reflects(StringWrapper.class).isReflect());
+    assertTrue(Avros.reflects(StringWrapper.class).hasReflect());
   }
 
   @Test
   public void testIsReflect_NonReflectSubType() {
-    assertFalse(Avros.pairs(Avros.ints(), Avros.ints()).isReflect());
+    assertFalse(Avros.pairs(Avros.ints(), Avros.ints()).hasReflect());
   }
 
   @Test
   public void testIsReflect_ReflectSubType() {
-    assertTrue(Avros.pairs(Avros.ints(), Avros.reflects(StringWrapper.class)).isReflect());
+    assertTrue(Avros.pairs(Avros.ints(), Avros.reflects(StringWrapper.class)).hasReflect());
   }
 
   @Test
   public void testIsReflect_TableOfNonReflectTypes() {
-    assertFalse(Avros.tableOf(Avros.ints(), Avros.strings()).isReflect());
+    assertFalse(Avros.tableOf(Avros.ints(), Avros.strings()).hasReflect());
   }
 
   @Test
   public void testIsReflect_TableWithReflectKey() {
-    assertTrue(Avros.tableOf(Avros.reflects(StringWrapper.class), Avros.ints()).isReflect());
+    assertTrue(Avros.tableOf(Avros.reflects(StringWrapper.class), Avros.ints()).hasReflect());
   }
 
   @Test
   public void testIsReflect_TableWithReflectValue() {
-    assertTrue(Avros.tableOf(Avros.ints(), Avros.reflects(StringWrapper.class)).isReflect());
+    assertTrue(Avros.tableOf(Avros.ints(), Avros.reflects(StringWrapper.class)).hasReflect());
   }
 
   @Test
   public void testReflect_CollectionContainingReflectValue() {
-    assertTrue(Avros.collections(Avros.reflects(StringWrapper.class)).isReflect());
+    assertTrue(Avros.collections(Avros.reflects(StringWrapper.class)).hasReflect());
   }
 
   @Test
   public void testReflect_CollectionNotContainingReflectValue() {
-    assertFalse(Avros.collections(Avros.generics(Person.SCHEMA$)).isReflect());
+    assertFalse(Avros.collections(Avros.generics(Person.SCHEMA$)).hasReflect());
   }
 
   @Test
@@ -162,28 +162,46 @@ public class AvroTypeTest {
   
   private Person createPerson(){
     Person person = new Person();
-    person.setName("name value");
-    person.setAge(42);
-    person.setSiblingnames(Lists.<CharSequence> newArrayList());
+    person.name = "name value";
+    person.age = 42;
+    person.siblingnames = Lists.<CharSequence> newArrayList();
     return person;
   }
 
   @Test
   public void testGetDetachedValue_SpecificAvroType() {
-    AvroType<Person> specificType = Avros.records(Person.class);
+    AvroType<Person> specificType = Avros.specifics(Person.class);
     Person person = createPerson();
     Person detachedPerson = specificType.getDetachedValue(person);
     assertEquals(person, detachedPerson);
     assertNotSame(person, detachedPerson);
   }
 
+  static class ReflectedPerson {
+    String name;
+    int age;
+    List<String> siblingnames;
+    
+    @Override
+    public boolean equals(Object other) {
+      if (other == null || !(other instanceof ReflectedPerson)) {
+        return false;
+      }
+      ReflectedPerson that = (ReflectedPerson) other;
+      return name.equals(that.name)&& age == that.age && siblingnames.equals(that.siblingnames); 
+    }
+  }
+  
   @Test
   public void testGetDetachedValue_ReflectAvroType() {
-    AvroType<Person> reflectType = Avros.reflects(Person.class);
-    Person person = createPerson();
-    Person detachedPerson = reflectType.getDetachedValue(person);
-    assertEquals(person, detachedPerson);
-    assertNotSame(person, detachedPerson);
+    AvroType<ReflectedPerson> reflectType = Avros.reflects(ReflectedPerson.class);
+    ReflectedPerson rp = new ReflectedPerson();
+    rp.name = "josh";
+    rp.age = 32;
+    rp.siblingnames = Lists.newArrayList();
+    ReflectedPerson detached = reflectType.getDetachedValue(rp);
+    assertEquals(rp, detached);
+    assertNotSame(rp, detached);
   }
 
   @Test

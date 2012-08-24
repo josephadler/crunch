@@ -91,11 +91,25 @@ public class AvroType<T> implements PType<T> {
   }
 
   /**
-   * Determine if the wrapped type is a specific data avro type.
+   * Determine if the wrapped type is a specific data avro type or wraps one.
    * 
-   * @return true if the wrapped type is a specific data type
+   * @return true if the wrapped type is a specific data type or wraps one
    */
-  public boolean isSpecific() {
+  public boolean hasSpecific() {
+    if (Avros.isPrimitive(this)) {
+      return false;
+    }
+    
+    if (!this.subTypes.isEmpty()) {
+      for (PType<?> subType : this.subTypes) {
+        AvroType<?> atype = (AvroType<?>) subType;
+        if (atype.hasSpecific()) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
     return SpecificRecord.class.isAssignableFrom(typeClass);
   }
 
@@ -109,19 +123,18 @@ public class AvroType<T> implements PType<T> {
   }
 
   /**
-   * Determine if the wrapped type is a reflection-based avro type.
+   * Determine if the wrapped type is a reflection-based avro type or wraps one.
    * 
-   * @return true if the wrapped type is a reflection-based type
+   * @return true if the wrapped type is a reflection-based type or wraps one.
    */
-  public boolean isReflect() {
+  public boolean hasReflect() {
     if (Avros.isPrimitive(this)) {
       return false;
     }
 
     if (!this.subTypes.isEmpty()) {
-
       for (PType<?> subType : this.subTypes) {
-        if (((AvroType<?>) subType).isReflect()) {
+        if (((AvroType<?>) subType).hasReflect()) {
           return true;
         }
       }
