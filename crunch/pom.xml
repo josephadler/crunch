@@ -33,6 +33,7 @@ under the License.
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -44,11 +45,13 @@ under the License.
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro-mapred</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
