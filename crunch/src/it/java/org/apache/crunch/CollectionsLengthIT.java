@@ -21,17 +21,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.lang.Integer;
-import java.lang.Iterable;
-import java.lang.String;
+import java.lang.Long;
 import java.util.Collection;
 
-import org.apache.crunch.PCollection;
 import org.apache.crunch.PObject;
 import org.apache.crunch.impl.mem.MemPipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
-import org.apache.crunch.materialize.pobject.FirstElementPObject;
-import org.apache.crunch.materialize.pobject.PObjectImpl;
 import org.apache.crunch.test.TemporaryPath;
 import org.apache.crunch.test.TemporaryPaths;
 import org.apache.crunch.types.PTypeFamily;
@@ -44,29 +39,38 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @SuppressWarnings("serial")
-public class FirstElementPObjectIT {
+public class CollectionsLengthIT {
 
-  private static final String FIRST_SHAKESPEARE_LINE =
-      "***The Project Gutenberg's Etext of Shakespeare's First Folio***";
+  public static final Long LINES_IN_SHAKESPEARE = 3667L;
 
   @Rule
   public TemporaryPath tmpDir = TemporaryPaths.create();
 
   @Test
-  public void testMRPipeline() throws IOException {
-    run(new MRPipeline(FirstElementPObjectIT.class, tmpDir.getDefaultConfiguration()));
+  public void testWritables() throws IOException {
+    run(new MRPipeline(CollectionsIT.class, tmpDir.getDefaultConfiguration()), WritableTypeFamily.getInstance());
   }
 
   @Test
-  public void testInMemoryPipeline() throws IOException {
-    run(MemPipeline.getInstance());
+  public void testAvro() throws IOException {
+    run(new MRPipeline(CollectionsIT.class, tmpDir.getDefaultConfiguration()), AvroTypeFamily.getInstance());
   }
 
-  public void run(Pipeline pipeline) throws IOException {
+  @Test
+  public void testInMemoryWritables() throws IOException {
+    run(MemPipeline.getInstance(), WritableTypeFamily.getInstance());
+  }
+
+  @Test
+  public void testInMemoryAvro() throws IOException {
+    run(MemPipeline.getInstance(), AvroTypeFamily.getInstance());
+  }
+
+  public void run(Pipeline pipeline, PTypeFamily typeFamily) throws IOException {
     String shakesInputPath = tmpDir.copyResourceFileName("shakes.txt");
+
     PCollection<String> shakespeare = pipeline.readTextFile(shakesInputPath);
-    PObject<String> firstLine = new FirstElementPObject<String>(shakespeare);
-    String first = firstLine.getValue();
-    assertEquals("First line in Shakespeare is wrong.", FIRST_SHAKESPEARE_LINE, first);
+    Long length = shakespeare.length().getValue();
+    assertEquals("Incorrect length for shakespear PCollection.", LINES_IN_SHAKESPEARE, length);
   }
 }
