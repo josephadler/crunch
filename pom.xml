@@ -48,7 +48,9 @@ under the License.
     <module>crunch-hbase</module>
     <module>crunch-test</module>
     <module>crunch-examples</module>
+    <module>crunch-archetype</module>
     <module>crunch-scrunch</module>
+    <module>crunch-dist</module>
   </modules>
 
   <properties>
@@ -133,6 +135,24 @@ under the License.
       <dependency>
         <groupId>org.apache.crunch</groupId>
         <artifactId>crunch-test</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.crunch</groupId>
+        <artifactId>crunch-examples</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.crunch</groupId>
+        <artifactId>crunch-archetype</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.crunch</groupId>
+        <artifactId>crunch-scrunch</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -474,40 +494,9 @@ under the License.
         </dependencies>
       </dependencyManagement>
     </profile>
-    <profile>
-      <id>apache-release</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <version>2.3</version>
-            <!-- Override source-release-assembly from parent POM to
-                 change the name of the release artifact. -->
-            <executions>
-              <execution>
-                <id>source-release-assembly</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <configuration combine.self="override">
-                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
-                  <descriptors>
-                    <descriptor>src/main/assembly/crunch-release.xml</descriptor>
-                  </descriptors>
-                  <tarLongFileMode>gnu</tarLongFileMode>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
 
   <build>
-    <finalName>apache-crunch-${project.version}</finalName>
     <plugins>
       <!--
        <plugin>
@@ -524,11 +513,6 @@ under the License.
             <groupId>org.apache.maven.wagon</groupId>
             <artifactId>wagon-ssh</artifactId>
             <version>1.0</version>
-          </dependency>
-          <dependency>
-            <groupId>org.apache.maven.doxia</groupId>
-            <artifactId>doxia-module-markdown</artifactId>
-            <version>1.3</version>
           </dependency>
         </dependencies>
         <configuration>
@@ -594,11 +578,11 @@ under the License.
           <version>0.8</version>
           <configuration>
             <excludes>
-            <exclude>DEPENDENCIES</exclude> 
             <exclude>.git/**</exclude>
             <exclude>.gitignore</exclude>
             <exclude>.repository/</exclude>
             <exclude>**/resources/*.txt</exclude>
+            <exclude>**/goal.txt</exclude>
             <exclude>**/target/generated-test-sources/**</exclude>
             <exclude>**/scripts/scrunch</exclude>
             </excludes>
@@ -622,6 +606,11 @@ under the License.
             <source>${java.source.version}</source>
             <target>${java.target.version}</target>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>2.3</version>
         </plugin>
         <plugin>
           <groupId>org.scala-tools</groupId>
@@ -659,6 +648,12 @@ under the License.
               </goals>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-archetype-plugin</artifactId>
+          <version>2.2</version>
+          <extensions>true</extensions>
         </plugin>
         <!-- The m2eclipse plugin doesn't support all maven plugins we use, so
              we tell it to ignore them to avoid errors in Eclipse. -->
@@ -743,7 +738,7 @@ under the License.
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>2.9.1</version>
                 <configuration>
-                  <configLocation>${project.parent.basedir}/res/checkstyle.xml</configLocation> 
+                  <configLocation>${project.parent.basedir}/src/main/config/checkstyle.xml</configLocation>
                 </configuration>   
               </plugin>
               <plugin>
