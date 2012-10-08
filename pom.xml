@@ -70,6 +70,7 @@ under the License.
     <commons-httpclient.version>3.0.1</commons-httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <avro.version>1.7.1</avro.version>
+    <commons-cli.version>1.2</commons-cli.version>
     <jackson.version>1.8.8</jackson.version>
     <protobuf-java.version>2.3.0</protobuf-java.version>
     <libthrift.version>0.8.0</libthrift.version>
