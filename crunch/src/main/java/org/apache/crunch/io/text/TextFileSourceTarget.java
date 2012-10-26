@@ -17,17 +17,24 @@
  */
 package org.apache.crunch.io.text;
 
+import org.apache.crunch.io.FileNamingScheme;
+import org.apache.crunch.io.SequentialFileNamingScheme;
 import org.apache.crunch.io.impl.ReadableSourcePathTargetImpl;
 import org.apache.crunch.types.PType;
 import org.apache.hadoop.fs.Path;
 
 public class TextFileSourceTarget<T> extends ReadableSourcePathTargetImpl<T> {
+
   public TextFileSourceTarget(String path, PType<T> ptype) {
     this(new Path(path), ptype);
   }
 
   public TextFileSourceTarget(Path path, PType<T> ptype) {
-    super(new TextFileSource<T>(path, ptype), new TextFileTarget(path));
+    this(path, ptype, new SequentialFileNamingScheme());
+  }
+
+  public TextFileSourceTarget(Path path, PType<T> ptype, FileNamingScheme fileNamingScheme) {
+    super(new TextFileSource<T>(path, ptype), new TextFileTarget(path), fileNamingScheme);
   }
 
   @Override

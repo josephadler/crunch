@@ -15,43 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.test;
+package org.apache.crunch.impl.mr.exec;
 
-import java.util.List;
+import static org.junit.Assert.assertEquals;
 
-import org.apache.crunch.Emitter;
+import org.junit.Test;
 
-import com.google.common.collect.Lists;
+public class CrunchJobTest {
 
-/**
- * An {@code Emitter} instance that writes emitted records to a backing
- * {@code List}.
- * 
- * @param <T>
- */
-public class InMemoryEmitter<T> implements Emitter<T> {
-
-  private final List<T> output;
-
-  public InMemoryEmitter() {
-    this(Lists.<T> newArrayList());
+  @Test
+  public void testExtractPartitionNumber() {
+    assertEquals(0, CrunchJob.extractPartitionNumber("out1-r-00000"));
+    assertEquals(10, CrunchJob.extractPartitionNumber("out2-r-00010"));
+    assertEquals(99999, CrunchJob.extractPartitionNumber("out3-r-99999"));
   }
 
-  public InMemoryEmitter(List<T> output) {
-    this.output = output;
+  @Test
+  public void testExtractPartitionNumber_WithSuffix() {
+    assertEquals(10, CrunchJob.extractPartitionNumber("out2-r-00010.avro"));
   }
 
-  @Override
-  public void emit(T emitted) {
-    output.add(emitted);
-  }
-
-  @Override
-  public void flush() {
-
-  }
-
-  public List<T> getOutput() {
-    return output;
+  @Test(expected = IllegalArgumentException.class)
+  public void testExtractPartitionNumber_MapOutputFile() {
+    CrunchJob.extractPartitionNumber("out1-m-00000");
   }
 }

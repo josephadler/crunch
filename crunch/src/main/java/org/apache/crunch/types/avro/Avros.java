@@ -50,10 +50,10 @@ import org.apache.crunch.types.DeepCopier;
 import org.apache.crunch.types.MapDeepCopier;
 import org.apache.crunch.types.PTableType;
 import org.apache.crunch.types.PType;
+import org.apache.crunch.types.PTypes;
 import org.apache.crunch.types.TupleDeepCopier;
 import org.apache.crunch.types.TupleFactory;
 import org.apache.crunch.types.writable.WritableDeepCopier;
-import org.apache.crunch.util.PTypes;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -234,7 +234,7 @@ public class Avros {
     return new AvroType<T>(clazz, schema, new AvroDeepCopier.AvroReflectDeepCopier<T>(clazz, schema));
   }
 
-  private static class BytesToWritableMapFn<T extends Writable> extends MapFn<ByteBuffer, T> {
+  private static class BytesToWritableMapFn<T extends Writable> extends MapFn<Object, T> {
     private static final Log LOG = LogFactory.getLog(BytesToWritableMapFn.class);
 
     private final Class<T> writableClazz;
@@ -244,11 +244,12 @@ public class Avros {
     }
 
     @Override
-    public T map(ByteBuffer input) {
-      T instance = ReflectionUtils.newInstance(writableClazz, getConfiguration());
+    public T map(Object input) {
+      ByteBuffer byteBuffer = BYTES_IN.map(input);
+      T instance = ReflectionUtils.newInstance(writableClazz, null);
       try {
-        instance.readFields(new DataInputStream(new ByteArrayInputStream(input.array(), input.arrayOffset(), input
-            .limit())));
+        instance.readFields(new DataInputStream(new ByteArrayInputStream(byteBuffer.array(),
+            byteBuffer.arrayOffset(), byteBuffer.limit())));
       } catch (IOException e) {
         LOG.error("Exception thrown reading instance of: " + writableClazz, e);
       }
@@ -291,11 +292,6 @@ public class Avros {
     }
 
     @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
-    }
-
-    @Override
     public void initialize() {
       this.mapFn.setContext(getContext());
     }
@@ -332,11 +328,6 @@ public class Avros {
     @Override
     public void configure(Configuration conf) {
       mapFn.configure(conf);
-    }
-
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
     }
 
     @Override
@@ -378,11 +369,6 @@ public class Avros {
     }
 
     @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
-    }
-
-    @Override
     public void initialize() {
       this.mapFn.setContext(getContext());
     }
@@ -407,11 +393,6 @@ public class Avros {
     @Override
     public void configure(Configuration conf) {
       mapFn.configure(conf);
-    }
-
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
     }
 
     @Override
@@ -456,13 +437,6 @@ public class Avros {
     public void configure(Configuration conf) {
       for (MapFn fn : fns) {
         fn.configure(conf);
-      }
-    }
-
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      for (MapFn fn : fns) {
-        fn.setConfigurationForTest(conf);
       }
     }
 
@@ -523,13 +497,6 @@ public class Avros {
     public void configure(Configuration conf) {
       for (MapFn fn : fns) {
         fn.configure(conf);
-      }
-    }
-
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      for (MapFn fn : fns) {
-        fn.setConfigurationForTest(conf);
       }
     }
 

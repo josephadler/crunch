@@ -34,9 +34,9 @@ import org.apache.crunch.types.CollectionDeepCopier;
 import org.apache.crunch.types.DeepCopier;
 import org.apache.crunch.types.MapDeepCopier;
 import org.apache.crunch.types.PType;
+import org.apache.crunch.types.PTypes;
 import org.apache.crunch.types.TupleDeepCopier;
 import org.apache.crunch.types.TupleFactory;
-import org.apache.crunch.util.PTypes;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
@@ -297,13 +297,6 @@ public class Writables {
     }
 
     @Override
-    public void setConfigurationForTest(Configuration conf) {
-      for (MapFn fn : fns) {
-        fn.setConfigurationForTest(conf);
-      }
-    }
-
-    @Override
     public void initialize() {
       for (MapFn fn : fns) {
         fn.setContext(getContext());
@@ -353,12 +346,6 @@ public class Writables {
       }
     }
 
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      for (MapFn fn : fns) {
-        fn.setConfigurationForTest(conf);
-      }
-    }
 
     @Override
     public void initialize() {
@@ -439,10 +426,6 @@ public class Writables {
       mapFn.configure(conf);
     }
 
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
-    }
 
     @Override
     public void initialize() {
@@ -474,10 +457,6 @@ public class Writables {
       mapFn.configure(conf);
     }
 
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
-    }
 
     @Override
     public void initialize() {
@@ -516,11 +495,6 @@ public class Writables {
     }
 
     @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
-    }
-
-    @Override
     public void initialize() {
       mapFn.setContext(getContext());
     }
@@ -548,11 +522,6 @@ public class Writables {
     @Override
     public void configure(Configuration conf) {
       mapFn.configure(conf);
-    }
-
-    @Override
-    public void setConfigurationForTest(Configuration conf) {
-      mapFn.setConfigurationForTest(conf);
     }
 
     @Override

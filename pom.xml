@@ -47,6 +47,7 @@ under the License.
     <module>crunch</module>
     <module>crunch-hbase</module>
     <module>crunch-test</module>
+    <module>crunch-contrib</module>
     <module>crunch-examples</module>
     <module>crunch-archetype</module>
     <module>crunch-scrunch</module>
@@ -69,8 +70,9 @@ under the License.
     <commons-codec.version>1.4</commons-codec.version>
     <commons-httpclient.version>3.0.1</commons-httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
-    <avro.version>1.7.1</avro.version>
+    <avro.version>1.7.2</avro.version>
     <commons-cli.version>1.2</commons-cli.version>
+    <javassist.version>3.12.1.GA</javassist.version>
     <jackson.version>1.8.8</jackson.version>
     <protobuf-java.version>2.3.0</protobuf-java.version>
     <libthrift.version>0.8.0</libthrift.version>
@@ -81,6 +83,7 @@ under the License.
     <mockito.version>1.9.0</mockito.version>
     <scala.version>2.9.2</scala.version>
     <scalatest.version>1.7.2</scalatest.version>
+    <pkg>org.apache.crunch</pkg>
   </properties>
 
   <scm>
@@ -156,6 +159,12 @@ under the License.
         <artifactId>crunch-scrunch</artifactId>
         <version>${project.version}</version>
       </dependency>
+      
+      <dependency>
+        <groupId>org.apache.crunch</groupId>
+        <artifactId>crunch-contrib</artifactId>
+        <version>${project.version}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -204,6 +213,12 @@ under the License.
             <artifactId>avro-ipc</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>javassist</groupId>
+        <artifactId>javassist</artifactId>
+        <version>${javassist.version}</version>
       </dependency>
 
       <dependency>
@@ -547,6 +562,25 @@ under the License.
         <configuration>
           <show>public</show>
           <nohelp>true</nohelp>
+          <excludePackageNames>${pkg}.hadoop.*:${pkg}.impl.mr.*:${pkg}.impl.mem.*:${pkg}.io.*:${pkg}.materialize:${pkg}.scrunch</excludePackageNames>
+          <groups>
+            <group>
+              <title>Core</title>
+              <packages>${pkg}:${pkg}.fn:${pkg}.impl.*:${pkg}.io:${pkg}.types:${pkg}.types.*:${pkg}.test:${pkg}.util</packages>
+            </group>
+            <group>
+              <title>Extension Library</title>
+              <packages>${pkg}.lib:${pkg}.lib.*</packages>
+            </group>
+            <group>
+              <title>User-contributed Functionality</title>
+              <packages>${pkg}.contrib:${pkg}.contrib.*</packages>
+            </group>
+            <group>
+              <title>Examples</title>
+              <packages>${pkg}.examples</packages>
+            </group>
+          </groups>
         </configuration>
         <executions>
           <execution>
@@ -749,6 +783,8 @@ under the License.
                 <configuration>
                   <show>public</show> 
                   <nohelp>true</nohelp>
+                  <subpackages>org.apache.crunch;org.apache.crunch.fn</subpackages>
+                  <excludePackageNames>org.apache.crunch.impl.*</excludePackageNames>
                 </configuration>         
                 <reportSets>
                   <reportSet>
