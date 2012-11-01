@@ -19,29 +19,22 @@ package org.apache.crunch.impl.mr.plan;
 
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.crunch.Source;
 import org.apache.crunch.SourceTarget;
 import org.apache.crunch.Target;
 import org.apache.crunch.impl.mr.MRPipeline;
-import org.apache.crunch.impl.mr.collect.DoCollectionImpl;
-import org.apache.crunch.impl.mr.collect.DoTableImpl;
 import org.apache.crunch.impl.mr.collect.InputCollection;
 import org.apache.crunch.impl.mr.collect.PCollectionImpl;
 import org.apache.crunch.impl.mr.collect.PGroupedTableImpl;
-import org.apache.crunch.impl.mr.collect.UnionCollection;
 import org.apache.crunch.impl.mr.exec.MRExecutor;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -62,7 +55,7 @@ public class MSCRPlanner {
       }
       return cmp;
     }
-  };
+  };  
 
   private final MRPipeline pipeline;
   private final Map<PCollectionImpl<?>, Set<Target>> outputs;
@@ -88,6 +81,7 @@ public class MSCRPlanner {
     // Break the graph up into connected components.
     List<List<Vertex>> components = graph.connectedComponents();
     
+
     // For each component, we will create one or more job prototypes,
     // depending on its profile.
     // For dependency handling, we only need to care about which
@@ -97,6 +91,7 @@ public class MSCRPlanner {
       assignments.putAll(constructJobPrototypes(component));
     }
     
+
     // Add in the job dependency information here.
     for (Map.Entry<Vertex, JobPrototype> e : assignments.entries()) {
       JobPrototype current = e.getValue();
@@ -109,10 +104,15 @@ public class MSCRPlanner {
     }
     
     // Finally, construct the jobs from the prototypes and return.
+    DotfileWriter dotfileWriter = new DotfileWriter();
     MRExecutor exec = new MRExecutor(jarClass);
     for (JobPrototype proto : Sets.newHashSet(assignments.values())) {
+      dotfileWriter.addJobPrototype(proto);
       exec.addJob(proto.getCrunchJob(jarClass, conf, pipeline));
     }
+
+    conf.set(PlanningParameters.PIPELINE_PLAN_DOTFILE, dotfileWriter.buildDotfile());
+
     return exec;
   }
   
@@ -250,9 +250,25 @@ public class MSCRPlanner {
       HashMultimap<Target, NodePath> outputPaths = HashMultimap.create();
       Set<Vertex> orphans = Sets.newHashSet();
       for (Vertex v : component) {
-        if (!assignment.containsKey(v) && v.isOutput()) {
+
+        // Check if this vertex has multiple inputs but only a subset of
+        // them have already been assigned
+        boolean vertexHasUnassignedIncomingEdges = false;
+        if (v.isOutput()) {
+          for (Edge e : v.getIncomingEdges()) {
+            if (!assignment.containsKey(e.getHead())) {
+              vertexHasUnassignedIncomingEdges = true;
+            }
+          }
+        }
+
+        if (v.isOutput() && (vertexHasUnassignedIncomingEdges || !assignment.containsKey(v))) {
           orphans.add(v);
           for (Edge e : v.getIncomingEdges()) {
+            if (vertexHasUnassignedIncomingEdges && assignment.containsKey(e.getHead())) {
+              // We've already dealt with this incoming edge
+              continue;
+            }
             orphans.add(e.getHead());
             for (NodePath nodePath : e.getNodePaths()) {
               PCollectionImpl target = nodePath.tail();
@@ -262,6 +278,7 @@ public class MSCRPlanner {
             }
           }
         }
+
       }
       if (!outputPaths.isEmpty()) {
         JobPrototype prototype = JobPrototype.createMapOnlyJob(
