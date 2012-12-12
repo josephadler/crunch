@@ -29,6 +29,7 @@ import org.apache.crunch.types.PType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
@@ -69,7 +70,7 @@ public class HBaseTarget implements MapReduceTarget {
 
   @Override
   public boolean accept(OutputHandler handler, PType<?> ptype) {
-    if (Put.class.equals(ptype.getTypeClass())) {
+    if (Put.class.equals(ptype.getTypeClass()) || Delete.class.equals(ptype.getTypeClass())) {
       handler.configure(this, ptype);
       return true;
     }
@@ -81,7 +82,8 @@ public class HBaseTarget implements MapReduceTarget {
     final Configuration conf = job.getConfiguration();
     HBaseConfiguration.addHbaseResources(conf);
     conf.set(TableOutputFormat.OUTPUT_TABLE, table);
-
+    Class<?> typeClass = ptype.getTypeClass(); // Either Put or Delete
+    
     try {
       TableMapReduceUtil.addDependencyJars(job);
       FileOutputFormat.setOutputPath(job, outputPath);
@@ -92,12 +94,12 @@ public class HBaseTarget implements MapReduceTarget {
     if (null == name) {
       job.setOutputFormatClass(TableOutputFormat.class);
       job.setOutputKeyClass(ImmutableBytesWritable.class);
-      job.setOutputValueClass(Put.class);
+      job.setOutputValueClass(typeClass);
     } else {
       CrunchMultipleOutputs.addNamedOutput(job, name,
           TableOutputFormat.class,
           ImmutableBytesWritable.class,
-          Put.class);
+          typeClass);
     }
   }
 

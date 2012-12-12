@@ -62,7 +62,8 @@ under the License.
     <!--
         NOTE: Please don't change any dependency versions here without
               checking first that they match those on Hadoop's runtime
-              classpath.
+              classpath. Additionally, please keep licensing information
+              in NOTICE and LICENSE files up to date.
     -->
     <guava.version>11.0.2</guava.version>
     <commons-io.version>2.1</commons-io.version>
@@ -72,7 +73,7 @@ under the License.
     <commons-logging.version>1.1.1</commons-logging.version>
     <avro.version>1.7.2</avro.version>
     <commons-cli.version>1.2</commons-cli.version>
-    <javassist.version>3.12.1.GA</javassist.version>
+    <javassist.version>3.16.1-GA</javassist.version>
     <jackson.version>1.8.8</jackson.version>
     <protobuf-java.version>2.3.0</protobuf-java.version>
     <libthrift.version>0.8.0</libthrift.version>
@@ -216,7 +217,7 @@ under the License.
       </dependency>
 
       <dependency>
-        <groupId>javassist</groupId>
+        <groupId>org.javassist</groupId>
         <artifactId>javassist</artifactId>
         <version>${javassist.version}</version>
       </dependency>
@@ -617,6 +618,7 @@ under the License.
             <exclude>.gitignore</exclude>
             <exclude>.repository/</exclude>
             <exclude>**/resources/*.txt</exclude>
+            <exclude>**/resources/**/*.txt</exclude>
             <exclude>**/goal.txt</exclude>
             <exclude>**/target/generated-test-sources/**</exclude>
             <exclude>**/scripts/scrunch</exclude>
@@ -645,7 +647,7 @@ under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
-          <version>2.3</version>
+          <version>2.4</version>
         </plugin>
         <plugin>
           <groupId>org.scala-tools</groupId>
@@ -841,7 +843,7 @@ under the License.
         <artifactId>maven-failsafe-plugin</artifactId>
         <version>2.12</version>
         <configuration>
-          <argLine>-Xmx512m</argLine>
+          <argLine>-Xmx768m</argLine>
           <testSourceDirectory>${basedir}/src/it/java</testSourceDirectory>
         </configuration>
         <executions>

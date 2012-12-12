@@ -26,12 +26,14 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.Random;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
+import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
@@ -39,7 +41,6 @@ import org.apache.crunch.Pipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.io.hbase.HBaseSourceTarget;
 import org.apache.crunch.io.hbase.HBaseTarget;
-import org.apache.crunch.lib.Aggregate;
 import org.apache.crunch.test.TemporaryPath;
 import org.apache.crunch.test.TemporaryPaths;
 import org.apache.crunch.types.writable.Writables;
@@ -50,6 +51,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -63,9 +65,24 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 
 public class WordCountHBaseIT {
+
+  static class StringifyFn extends MapFn<Pair<ImmutableBytesWritable, Pair<Result, Result>>, String> {
+    @Override
+    public String map(Pair<ImmutableBytesWritable, Pair<Result, Result>> input) {
+      byte[] firstStrBytes = input.second().first().getValue(WORD_COLFAM, null);
+      byte[] secondStrBytes = input.second().second().getValue(WORD_COLFAM, null);
+      if (firstStrBytes != null && secondStrBytes != null) {
+        return Joiner.on(',').join(new String(firstStrBytes), new String(secondStrBytes));
+      }
+      return "";
+    }
+  }
+
   @Rule
   public TemporaryPath tmpDir = TemporaryPaths.create();
 
@@ -76,7 +93,7 @@ public class WordCountHBaseIT {
 
   @SuppressWarnings("serial")
   public static PCollection<Put> wordCount(PTable<ImmutableBytesWritable, Result> words) {
-    PTable<String, Long> counts = Aggregate.count(words.parallelDo(
+    PTable<String, Long> counts = words.parallelDo(
         new DoFn<Pair<ImmutableBytesWritable, Result>, String>() {
           @Override
           public void process(Pair<ImmutableBytesWritable, Result> row, Emitter<String> emitter) {
@@ -85,7 +102,7 @@ public class WordCountHBaseIT {
               emitter.emit(Bytes.toString(word));
             }
           }
-        }, words.getTypeFamily().strings()));
+        }, words.getTypeFamily().strings()).count();
 
     return counts.parallelDo("convert to put", new DoFn<Pair<String, Long>, Put>() {
       @Override
@@ -96,6 +113,18 @@ public class WordCountHBaseIT {
       }
 
     }, Writables.writables(Put.class));
+  }
+  
+  @SuppressWarnings("serial")
+  public static PCollection<Delete> clearCounts(PTable<ImmutableBytesWritable, Result> counts) {
+    return counts.parallelDo("convert to delete", new DoFn<Pair<ImmutableBytesWritable, Result>, Delete>() {
+      @Override
+      public void process(Pair<ImmutableBytesWritable, Result> input, Emitter<Delete> emitter) {
+        Delete delete = new Delete(input.first().get());
+        emitter.emit(delete);
+      }
+
+    }, Writables.writables(Delete.class));
   }
 
   @Before
@@ -151,6 +180,7 @@ public class WordCountHBaseIT {
       jarUp(jos, baseDir, prefix + "WordCountHBaseIT.class");
       jarUp(jos, baseDir, prefix + "WordCountHBaseIT$1.class");
       jarUp(jos, baseDir, prefix + "WordCountHBaseIT$2.class");
+      jarUp(jos, baseDir, prefix + "WordCountHBaseIT$3.class");
       jos.close();
 
       Path target = new Path(tmpPath, "WordCountHBaseIT.jar");
@@ -186,7 +216,8 @@ public class WordCountHBaseIT {
     int postFix = Math.abs(rand.nextInt());
     String inputTableName = "crunch_words_" + postFix;
     String outputTableName = "crunch_counts_" + postFix;
-
+    String joinTableName = "crunch_join_words_" + postFix;
+    
     try {
 
       HTable inputTable = hbaseTestUtil.createTable(Bytes.toBytes(inputTableName), WORD_COLFAM);
@@ -199,12 +230,42 @@ public class WordCountHBaseIT {
       Scan scan = new Scan();
       scan.addColumn(WORD_COLFAM, null);
       HBaseSourceTarget source = new HBaseSourceTarget(inputTableName, scan);
-      PTable<ImmutableBytesWritable, Result> shakespeare = pipeline.read(source);
-      pipeline.write(wordCount(shakespeare), new HBaseTarget(outputTableName));
+      PTable<ImmutableBytesWritable, Result> words = pipeline.read(source);
+      pipeline.write(wordCount(words), new HBaseTarget(outputTableName));
       pipeline.done();
 
       assertIsLong(outputTable, "cat", 2);
       assertIsLong(outputTable, "dog", 1);
+      
+      // verify we can do joins.
+      HTable joinTable = hbaseTestUtil.createTable(Bytes.toBytes(joinTableName), WORD_COLFAM);
+      key = 0;
+      key = put(joinTable, key, "zebra");
+      key = put(joinTable, key, "donkey");
+      key = put(joinTable, key, "bird");
+      key = put(joinTable, key, "horse");
+      
+      Scan joinScan = new Scan();
+      joinScan.addColumn(WORD_COLFAM, null);
+      PTable<ImmutableBytesWritable, Result> other = pipeline.read(FromHBase.table(joinTableName, joinScan));
+      PCollection<String> joined = words.join(other).parallelDo(new StringifyFn(), Writables.strings());
+      assertEquals(ImmutableSet.of("cat,zebra", "cat,donkey", "dog,bird"),
+          ImmutableSet.copyOf(joined.materialize()));
+      pipeline.done();
+
+      //verify HBaseTarget supports deletes.
+      Scan clearScan = new Scan();
+      clearScan.addColumn(COUNTS_COLFAM, null);
+      pipeline = new MRPipeline(WordCountHBaseIT.class, hbaseTestUtil.getConfiguration());
+      HBaseSourceTarget clearSource = new HBaseSourceTarget(outputTableName, clearScan);
+      PTable<ImmutableBytesWritable, Result> counts = pipeline.read(clearSource);
+      pipeline.write(clearCounts(counts), new HBaseTarget(outputTableName));
+      pipeline.done();
+      
+      assertDeleted(outputTable, "cat");
+      assertDeleted(outputTable, "dog");
+      
+      
     } finally {
       // not quite sure...
     }
@@ -226,4 +287,11 @@ public class WordCountHBaseIT {
     assertTrue(rawCount != null);
     assertEquals(new Long(i), new Long(Bytes.toLong(rawCount)));
   }
+  
+  protected void assertDeleted(HTable table, String key) throws IOException {
+      Get get = new Get(Bytes.toBytes(key));
+      get.addColumn(COUNTS_COLFAM, null);
+      Result result = table.get(get);
+      assertTrue(result.isEmpty());
+    }
 }
