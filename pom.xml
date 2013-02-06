@@ -366,7 +366,7 @@ under the License.
         </property>
       </activation>
       <properties>
-        <hadoop.version>1.0.3</hadoop.version>
+        <hadoop.version>1.0.4-p1</hadoop.version>
         <hbase.version>0.90.4</hbase.version>
       </properties>
       <dependencyManagement>
