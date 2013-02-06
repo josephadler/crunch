@@ -28,6 +28,9 @@ import org.apache.crunch.SourceTarget;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.TaskInputOutputContext;
+
+import com.google.common.collect.Iterables;
 
 /**
  * The {@code PType} instance for {@link PGroupedTable} instances. Its settings
@@ -63,6 +66,11 @@ public abstract class PGroupedTableType<K, V> implements PType<Pair<K, Iterable<
         }
       };
     }
+    
+    @Override
+    public String toString() {
+      return Iterables.toString(this);
+    }
   }
 
   public static class PairIterableMapFn<K, V> extends MapFn<Pair<Object, Iterable<Object>>, Pair<K, Iterable<V>>> {
@@ -80,10 +88,15 @@ public abstract class PGroupedTableType<K, V> implements PType<Pair<K, Iterable<
       values.configure(conf);
     }
     
+    public void setContext(TaskInputOutputContext<?, ?, ?, ?> context) {
+      keys.setContext(context);
+      values.setContext(context);
+    }
+    
     @Override
     public void initialize() {
-      keys.setContext(getContext());
-      values.setContext(getContext());
+      keys.initialize();
+      values.initialize();
     }
 
     @Override

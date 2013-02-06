@@ -20,6 +20,8 @@ package org.apache.crunch;
 import java.util.List;
 
 import org.apache.crunch.fn.FilterFns;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 
 import com.google.common.collect.ImmutableList;
 
@@ -40,7 +42,20 @@ public abstract class FilterFn<T> extends DoFn<T, T> {
       emitter.emit(input);
     }
   }
-
+  
+  @Override
+  public final void cleanup(Emitter<T> emitter) {
+    cleanup();
+  }
+  
+  /**
+   * Called during the cleanup of the MapReduce job this {@code FilterFn} is
+   * associated with. Subclasses may override this method to do appropriate
+   * cleanup.
+   */
+  public void cleanup() {
+  }
+  
   @Override
   public float scaleFactor() {
     return 0.5f;
@@ -63,6 +78,34 @@ public abstract class FilterFn<T> extends DoFn<T, T> {
     public AndFn(FilterFn<S>... fns) {
       this.fns = ImmutableList.<FilterFn<S>> copyOf(fns);
     }
+    
+    @Override
+    public void configure(Configuration conf) {
+      for (FilterFn<S> fn : fns) {
+        fn.configure(conf);
+      }
+    }
+
+    @Override
+    public void setContext(TaskInputOutputContext<?, ?, ?, ?> context) {
+      for (FilterFn<S> fn : fns) {
+        fn.setContext(context);
+      }
+    }
+    
+    @Override
+    public void initialize() {
+      for (FilterFn<S> fn : fns) {
+        fn.initialize();
+      }
+    }
+
+    @Override
+    public void cleanup() {
+      for (FilterFn<S> fn : fns) {
+        fn.cleanup();
+      }
+    }
 
     @Override
     public boolean accept(S input) {
@@ -73,7 +116,7 @@ public abstract class FilterFn<T> extends DoFn<T, T> {
       }
       return true;
     }
-
+    
     @Override
     public float scaleFactor() {
       float scaleFactor = 1.0f;
@@ -101,6 +144,34 @@ public abstract class FilterFn<T> extends DoFn<T, T> {
     public OrFn(FilterFn<S>... fns) {
       this.fns = ImmutableList.<FilterFn<S>> copyOf(fns);
     }
+    
+    @Override
+    public void configure(Configuration conf) {
+      for (FilterFn<S> fn : fns) {
+        fn.configure(conf);
+      }
+    }
+
+    @Override
+    public void setContext(TaskInputOutputContext<?, ?, ?, ?> context) {
+      for (FilterFn<S> fn : fns) {
+        fn.setContext(context);
+      }
+    }
+    
+    @Override
+    public void initialize() {
+      for (FilterFn<S> fn : fns) {
+        fn.initialize();
+      }
+    }
+    
+    @Override
+    public void cleanup() {
+      for (FilterFn<S> fn : fns) {
+        fn.cleanup();
+      }
+    }
 
     @Override
     public boolean accept(S input) {
@@ -111,7 +182,7 @@ public abstract class FilterFn<T> extends DoFn<T, T> {
       }
       return false;
     }
-
+    
     @Override
     public float scaleFactor() {
       float scaleFactor = 0.0f;
@@ -139,7 +210,27 @@ public abstract class FilterFn<T> extends DoFn<T, T> {
     public NotFn(FilterFn<S> base) {
       this.base = base;
     }
+    
+    @Override
+    public void configure(Configuration conf) {
+        base.configure(conf);
+    }
 
+    @Override
+    public void setContext(TaskInputOutputContext<?, ?, ?, ?> context) {
+      base.setContext(context);
+    }
+    
+    @Override
+    public void initialize() {
+      base.initialize();
+    }
+    
+    @Override
+    public void cleanup() {
+      base.cleanup();
+    }
+    
     @Override
     public boolean accept(S input) {
       return !base.accept(input);

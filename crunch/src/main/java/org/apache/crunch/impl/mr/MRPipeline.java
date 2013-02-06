@@ -44,18 +44,16 @@ import org.apache.crunch.impl.mr.collect.UnionTable;
 import org.apache.crunch.impl.mr.exec.MRExecutor;
 import org.apache.crunch.impl.mr.plan.MSCRPlanner;
 import org.apache.crunch.impl.mr.run.RuntimeParameters;
-import org.apache.crunch.io.At;
+import org.apache.crunch.io.From;
+import org.apache.crunch.io.ReadableSource;
 import org.apache.crunch.io.ReadableSourceTarget;
+import org.apache.crunch.io.To;
 import org.apache.crunch.materialize.MaterializableIterable;
 import org.apache.crunch.types.PType;
-import org.apache.crunch.types.writable.WritableTypeFamily;
+import org.apache.crunch.types.writable.Writables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -159,15 +157,25 @@ public class MRPipeline implements Pipeline {
     for (PCollectionImpl<?> c : outputTargets.keySet()) {
       if (outputTargetsToMaterialize.containsKey(c)) {
         MaterializableIterable iter = outputTargetsToMaterialize.get(c);
-        iter.materialize();
-        c.materializeAt(iter.getSourceTarget());
+        if (iter.isSourceTarget()) {
+          iter.materialize();
+          c.materializeAt((SourceTarget) iter.getSource());
+        }
         outputTargetsToMaterialize.remove(c);
       } else {
         boolean materialized = false;
         for (Target t : outputTargets.get(c)) {
-          if (!materialized && t instanceof Source) {
-            c.materializeAt((SourceTarget) t);
-            materialized = true;
+          if (!materialized) {
+            if (t instanceof SourceTarget) {
+              c.materializeAt((SourceTarget) t);
+              materialized = true;
+            } else {
+              SourceTarget st = t.asSourceTarget(c.getPType());
+              if (st != null) {
+                c.materializeAt(st);
+                materialized = true;
+              }
+            }
           }
         }
       }
@@ -195,7 +203,7 @@ public class MRPipeline implements Pipeline {
   }
 
   public PCollection<String> readTextFile(String pathName) {
-    return read(At.textFile(pathName));
+    return read(From.textFile(pathName));
   }
 
   @SuppressWarnings("unchecked")
@@ -220,9 +228,9 @@ public class MRPipeline implements Pipeline {
   public <T> Iterable<T> materialize(PCollection<T> pcollection) {
 
     PCollectionImpl<T> pcollectionImpl = toPcollectionImpl(pcollection);
-    ReadableSourceTarget<T> srcTarget = getMaterializeSourceTarget(pcollectionImpl);
+    ReadableSource<T> readableSrc = getMaterializeSourceTarget(pcollectionImpl);
 
-    MaterializableIterable<T> c = new MaterializableIterable<T>(this, srcTarget);
+    MaterializableIterable<T> c = new MaterializableIterable<T>(this, readableSrc);
     if (!outputTargetsToMaterialize.containsKey(pcollectionImpl)) {
       outputTargetsToMaterialize.put(pcollectionImpl, c);
     }
@@ -240,35 +248,56 @@ public class MRPipeline implements Pipeline {
    * @throws IllegalArgumentException If no ReadableSourceTarget can be retrieved for the given
    *           PCollection
    */
-  public <T> ReadableSourceTarget<T> getMaterializeSourceTarget(PCollection<T> pcollection) {
+  public <T> ReadableSource<T> getMaterializeSourceTarget(PCollection<T> pcollection) {
     PCollectionImpl<T> impl = toPcollectionImpl(pcollection);
+
+    // First, check to see if this is a readable input collection.
+    if (impl instanceof InputCollection) {
+      InputCollection<T> ic = (InputCollection<T>) impl;
+      if (ic.getSource() instanceof ReadableSource) {
+        return (ReadableSource) ic.getSource();
+      } else {
+        throw new IllegalArgumentException(
+            "Cannot materialize non-readable input collection: " + ic);
+      }
+    } else if (impl instanceof InputTable) {
+      InputTable it = (InputTable) impl;
+      if (it.getSource() instanceof ReadableSource) {
+        return (ReadableSource) it.getSource();
+      } else {
+        throw new IllegalArgumentException(
+            "Cannot materialize non-readable input table: " + it);
+      }
+    }
+
+    // Next, check to see if this pcollection has already been materialized.
     SourceTarget<T> matTarget = impl.getMaterializedAt();
     if (matTarget != null && matTarget instanceof ReadableSourceTarget) {
       return (ReadableSourceTarget<T>) matTarget;
     }
-
+    
+    // Check to see if we plan on materializing this collection on the
+    // next run.
     ReadableSourceTarget<T> srcTarget = null;
     if (outputTargets.containsKey(pcollection)) {
       for (Target target : outputTargets.get(impl)) {
         if (target instanceof ReadableSourceTarget) {
-          srcTarget = (ReadableSourceTarget<T>) target;
-          break;
+          return (ReadableSourceTarget<T>) target;
         }
       }
     }
 
-    if (srcTarget == null) {
-      SourceTarget<T> st = createIntermediateOutput(pcollection.getPType());
-      if (!(st instanceof ReadableSourceTarget)) {
-        throw new IllegalArgumentException("The PType for the given PCollection is not readable"
-            + " and cannot be materialized");
-      } else {
-        srcTarget = (ReadableSourceTarget<T>) st;
-        addOutput(impl, srcTarget);
-      }
+    // If we're not planning on materializing it already, create a temporary
+    // output to hold the materialized records and return that.
+    SourceTarget<T> st = createIntermediateOutput(pcollection.getPType());
+    if (!(st instanceof ReadableSourceTarget)) {
+      throw new IllegalArgumentException("The PType for the given PCollection is not readable"
+          + " and cannot be materialized");
+    } else {
+      srcTarget = (ReadableSourceTarget<T>) st;
+      addOutput(impl, srcTarget);
+      return srcTarget;
     }
-
-    return srcTarget;
   }
 
   /**
@@ -280,7 +309,7 @@ public class MRPipeline implements Pipeline {
    */
   private <T> PCollectionImpl<T> toPcollectionImpl(PCollection<T> pcollection) {
     PCollectionImpl<T> pcollectionImpl = null;
-    if (pcollection instanceof UnionCollection) {
+    if (pcollection instanceof UnionCollection || pcollection instanceof UnionTable) {
       pcollectionImpl = (PCollectionImpl<T>) pcollection.parallelDo("UnionCollectionWrapper",
           (MapFn) IdentityFn.<Object> getInstance(), pcollection.getPType());
     } else {
@@ -315,12 +344,17 @@ public class MRPipeline implements Pipeline {
 
   @Override
   public <T> void writeTextFile(PCollection<T> pcollection, String pathName) {
-    // Ensure that this is a writable pcollection instance.
-    pcollection = pcollection.parallelDo("asText", IdentityFn.<T> getInstance(), WritableTypeFamily
-        .getInstance().as(pcollection.getPType()));
-    write(pcollection, At.textFile(pathName));
+    pcollection.parallelDo("asText", new StringifyFn<T>(), Writables.strings())
+        .write(To.textFile(pathName));
   }
 
+  private static class StringifyFn<T> extends MapFn<T, String> {
+    @Override
+    public String map(T input) {
+      return input.toString();
+    }
+  }
+  
   private void cleanup() {
     if (!outputTargets.isEmpty()) {
       LOG.warn("Not running cleanup while output targets remain");
@@ -344,17 +378,6 @@ public class MRPipeline implements Pipeline {
   public void enableDebug() {
     // Turn on Crunch runtime error catching.
     getConfiguration().setBoolean(RuntimeParameters.DEBUG, true);
-
-    // Write Hadoop's WARN logs to the console.
-    Logger crunchInfoLogger = LogManager.getLogger("org.apache.crunch");
-    Appender console = crunchInfoLogger.getAppender("A");
-    if (console != null) {
-      Logger hadoopLogger = LogManager.getLogger("org.apache.hadoop");
-      hadoopLogger.setLevel(Level.WARN);
-      hadoopLogger.addAppender(console);
-    } else {
-      LOG.warn("Could not find console appender named 'A' for writing Hadoop warning logs");
-    }
   }
 
   @Override

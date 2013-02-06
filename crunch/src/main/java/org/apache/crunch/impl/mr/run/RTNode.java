@@ -64,18 +64,21 @@ public class RTNode implements Serializable {
     }
 
     fn.setContext(ctxt.getContext());
+    fn.initialize();
     for (RTNode child : children) {
       child.initialize(ctxt);
     }
 
     if (outputConverter != null) {
       if (outputName != null) {
-        this.emitter = new MultipleOutputEmitter(outputConverter, ctxt.getMultipleOutputs(), outputName);
+        this.emitter = new MultipleOutputEmitter(outputConverter, ctxt.getMultipleOutputs(),
+            outputName);
       } else {
         this.emitter = new OutputEmitter(outputConverter, ctxt.getContext());
       }
     } else if (!children.isEmpty()) {
-      this.emitter = new IntermediateEmitter(outputPType, children, ctxt.getContext().getConfiguration());
+      this.emitter = new IntermediateEmitter(outputPType, children,
+          ctxt.getContext().getConfiguration());
     } else {
       throw new CrunchRuntimeException("Invalid RTNode config: no emitter for: " + nodeName);
     }

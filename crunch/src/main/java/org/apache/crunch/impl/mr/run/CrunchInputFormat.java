@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.crunch.io.InputBundle;
+import org.apache.crunch.io.CrunchInputs;
+import org.apache.crunch.io.FormatBundle;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -40,15 +42,16 @@ public class CrunchInputFormat<K, V> extends InputFormat<K, V> {
   @Override
   public List<InputSplit> getSplits(JobContext job) throws IOException, InterruptedException {
     List<InputSplit> splits = Lists.newArrayList();
-    Configuration conf = job.getConfiguration();
-    Map<InputBundle, Map<Integer, List<Path>>> formatNodeMap = CrunchInputs.getFormatNodeMap(job);
+    Configuration base = job.getConfiguration();
+    Map<FormatBundle, Map<Integer, List<Path>>> formatNodeMap = CrunchInputs.getFormatNodeMap(job);
 
     // First, build a map of InputFormats to Paths
-    for (Map.Entry<InputBundle, Map<Integer, List<Path>>> entry : formatNodeMap.entrySet()) {
-      InputBundle inputBundle = entry.getKey();
+    for (Map.Entry<FormatBundle, Map<Integer, List<Path>>> entry : formatNodeMap.entrySet()) {
+      FormatBundle inputBundle = entry.getKey();
+      Configuration conf = new Configuration(base);
+      inputBundle.configure(conf);
       Job jobCopy = new Job(conf);
-      inputBundle.configure(jobCopy.getConfiguration());
-      InputFormat<?, ?> format = (InputFormat<?, ?>) ReflectionUtils.newInstance(inputBundle.getInputFormatClass(),
+      InputFormat<?, ?> format = (InputFormat<?, ?>) ReflectionUtils.newInstance(inputBundle.getFormatClass(),
           jobCopy.getConfiguration());
       for (Map.Entry<Integer, List<Path>> nodeEntry : entry.getValue().entrySet()) {
         Integer nodeIndex = nodeEntry.getKey();
@@ -59,8 +62,8 @@ public class CrunchInputFormat<K, V> extends InputFormat<K, V> {
         // and Mapper types by wrapping in a TaggedInputSplit.
         List<InputSplit> pathSplits = format.getSplits(jobCopy);
         for (InputSplit pathSplit : pathSplits) {
-          splits.add(new CrunchInputSplit(pathSplit, inputBundle.getInputFormatClass(), inputBundle
-              .getExtraConfiguration(), nodeIndex, jobCopy.getConfiguration()));
+          splits.add(new CrunchInputSplit(pathSplit, inputBundle.getFormatClass(),
+              nodeIndex, jobCopy.getConfiguration()));
         }
       }
     }
@@ -72,5 +75,4 @@ public class CrunchInputFormat<K, V> extends InputFormat<K, V> {
       InterruptedException {
     return new CrunchRecordReader<K, V>(inputSplit, context);
   }
-
 }
