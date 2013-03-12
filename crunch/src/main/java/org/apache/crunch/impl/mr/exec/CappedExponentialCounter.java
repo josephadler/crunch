@@ -15,22 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.run;
+package org.apache.crunch.impl.mr.exec;
 
 /**
- * Parameters used during the runtime execution.
+ * Generate a series of capped numbers exponentially.
+ *
+ * It is used for creating retry intervals. It is NOT thread-safe.
  */
-public class RuntimeParameters {
+public class CappedExponentialCounter {
 
-  public static final String AGGREGATOR_BUCKETS = "crunch.aggregator.buckets";
+  private long current;
+  private final long limit;
 
-  public static final String DEBUG = "crunch.debug";
+  public CappedExponentialCounter(long start, long limit) {
+    this.current = start;
+    this.limit = limit;
+  }
 
-  public static final String TMP_DIR = "crunch.tmp.dir";
-
-  public static final String LOG_JOB_PROGRESS = "crunch.log.job.progress";
-
-  // Not instantiated
-  private RuntimeParameters() {
+  public long get() {
+    long result = current;
+    current = Math.min(current * 2, limit);
+    return result;
   }
 }

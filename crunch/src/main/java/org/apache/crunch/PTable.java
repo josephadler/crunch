@@ -29,6 +29,13 @@ import org.apache.crunch.types.PType;
  *
  */
 public interface PTable<K, V> extends PCollection<Pair<K, V>> {
+
+  /**
+   Returns a {@code PTable} instance that acts as the union of this
+   * {@code PTable} and the other {@code PTable}s.
+   */
+  PTable<K, V> union(PTable<K, V> other);
+  
   /**
    * Returns a {@code PTable} instance that acts as the union of this
    * {@code PTable} and the input {@code PTable}s.
@@ -66,6 +73,12 @@ public interface PTable<K, V> extends PCollection<Pair<K, V>> {
    * Writes this {@code PTable} to the given {@code Target}.
    */
   PTable<K, V> write(Target target);
+
+  /**
+   * Writes this {@code PTable} to the given {@code Target}, using the
+   * given {@code Target.WriteMode} to handle existing targets.
+   */
+  PTable<K, V> write(Target target, Target.WriteMode writeMode);
 
   /**
    * Returns the {@code PTableType} of this {@code PTable}.

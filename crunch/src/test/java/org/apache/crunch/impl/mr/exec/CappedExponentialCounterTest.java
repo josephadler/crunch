@@ -15,22 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.run;
+package org.apache.crunch.impl.mr.exec;
 
-/**
- * Parameters used during the runtime execution.
- */
-public class RuntimeParameters {
+import static org.junit.Assert.assertEquals;
 
-  public static final String AGGREGATOR_BUCKETS = "crunch.aggregator.buckets";
+import org.junit.Test;
 
-  public static final String DEBUG = "crunch.debug";
+public class CappedExponentialCounterTest {
 
-  public static final String TMP_DIR = "crunch.tmp.dir";
+  @Test
+  public void testGet() {
+    CappedExponentialCounter c = new CappedExponentialCounter(1L, Long.MAX_VALUE);
+    assertEquals(1L, c.get());
+    assertEquals(2L, c.get());
+    assertEquals(4L, c.get());
+    assertEquals(8L, c.get());
+  }
 
-  public static final String LOG_JOB_PROGRESS = "crunch.log.job.progress";
-
-  // Not instantiated
-  private RuntimeParameters() {
+  @Test
+  public void testCap() {
+    CappedExponentialCounter c = new CappedExponentialCounter(1L, 2);
+    assertEquals(1L, c.get());
+    assertEquals(2L, c.get());
+    assertEquals(2L, c.get());
   }
 }

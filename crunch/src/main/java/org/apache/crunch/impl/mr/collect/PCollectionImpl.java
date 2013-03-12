@@ -36,9 +36,9 @@ import org.apache.crunch.Pipeline;
 import org.apache.crunch.SourceTarget;
 import org.apache.crunch.Target;
 import org.apache.crunch.fn.ExtractKeyFn;
+import org.apache.crunch.fn.IdentityFn;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.impl.mr.plan.DoNode;
-import org.apache.crunch.io.ReadableSource;
 import org.apache.crunch.lib.Aggregate;
 import org.apache.crunch.materialize.pobject.CollectionPObject;
 import org.apache.crunch.types.PTableType;
@@ -54,7 +54,7 @@ public abstract class PCollectionImpl<S> implements PCollection<S> {
 
   private final String name;
   protected MRPipeline pipeline;
-  private SourceTarget<S> materializedAt;
+  protected SourceTarget<S> materializedAt;
   private final ParallelDoOptions options;
   
   public PCollectionImpl(String name) {
@@ -77,11 +77,16 @@ public abstract class PCollectionImpl<S> implements PCollection<S> {
   }
 
   @Override
+  public PCollection<S> union(PCollection<S> other) {
+    return union(new PCollection[] { other });
+  }
+  
+  @Override
   public PCollection<S> union(PCollection<S>... collections) {
     List<PCollectionImpl<S>> internal = Lists.newArrayList();
     internal.add(this);
     for (PCollection<S> collection : collections) {
-      internal.add((PCollectionImpl<S>) collection);
+      internal.add((PCollectionImpl<S>) collection.parallelDo(IdentityFn.<S>getInstance(), collection.getPType()));
     }
     return new UnionCollection<S>(internal);
   }
@@ -129,6 +134,17 @@ public abstract class PCollectionImpl<S> implements PCollection<S> {
     return this;
   }
 
+  @Override
+  public PCollection<S> write(Target target, Target.WriteMode writeMode) {
+    if (materializedAt != null) {
+      getPipeline().write(new InputCollection<S>(materializedAt, (MRPipeline) getPipeline()), target,
+          writeMode);
+    } else {
+      getPipeline().write(this, target, writeMode);
+    }
+    return this;
+  }
+  
   @Override
   public Iterable<S> materialize() {
     if (getSize() == 0) {

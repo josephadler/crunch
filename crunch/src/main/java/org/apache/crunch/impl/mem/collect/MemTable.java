@@ -54,6 +54,11 @@ public class MemTable<K, V> extends MemCollection<Pair<K, V>> implements PTable<
   }
 
   @Override
+  public PTable<K, V> union(PTable<K, V> other) {
+    return union(new PTable[] { other });
+  }
+  
+  @Override
   public PTable<K, V> union(PTable<K, V>... others) {
     List<Pair<K, V>> values = Lists.newArrayList();
     values.addAll(getCollection());
@@ -86,6 +91,12 @@ public class MemTable<K, V> extends MemCollection<Pair<K, V>> implements PTable<
     return this;
   }
 
+  @Override
+  public PTable<K, V> write(Target target, Target.WriteMode writeMode) {
+    getPipeline().write(this, target, writeMode);
+    return this;
+  }
+  
   @Override
   public PTableType<K, V> getPTableType() {
     return ptype;

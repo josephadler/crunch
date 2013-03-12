@@ -32,6 +32,7 @@ import org.apache.crunch.impl.mr.collect.InputCollection;
 import org.apache.crunch.impl.mr.collect.PCollectionImpl;
 import org.apache.crunch.impl.mr.collect.PGroupedTableImpl;
 import org.apache.crunch.impl.mr.exec.MRExecutor;
+import org.apache.crunch.materialize.MaterializableIterable;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.common.collect.HashMultimap;
@@ -44,11 +45,14 @@ public class MSCRPlanner {
 
   private final MRPipeline pipeline;
   private final Map<PCollectionImpl<?>, Set<Target>> outputs;
-
-  public MSCRPlanner(MRPipeline pipeline, Map<PCollectionImpl<?>, Set<Target>> outputs) {
+  private final Map<PCollectionImpl<?>, MaterializableIterable> toMaterialize;
+  
+  public MSCRPlanner(MRPipeline pipeline, Map<PCollectionImpl<?>, Set<Target>> outputs,
+      Map<PCollectionImpl<?>, MaterializableIterable> toMaterialize) {
     this.pipeline = pipeline;
     this.outputs = new TreeMap<PCollectionImpl<?>, Set<Target>>(DEPTH_COMPARATOR);
     this.outputs.putAll(outputs);
+    this.toMaterialize = toMaterialize;
   }
 
   // Used to ensure that we always build pipelines starting from the deepest
@@ -148,13 +152,15 @@ public class MSCRPlanner {
     
     // Finally, construct the jobs from the prototypes and return.
     DotfileWriter dotfileWriter = new DotfileWriter();
-    MRExecutor exec = new MRExecutor(jarClass);
+    MRExecutor exec = new MRExecutor(jarClass, outputs, toMaterialize);
     for (JobPrototype proto : Sets.newHashSet(assignments.values())) {
       dotfileWriter.addJobPrototype(proto);
       exec.addJob(proto.getCrunchJob(jarClass, conf, pipeline));
     }
 
-    conf.set(PlanningParameters.PIPELINE_PLAN_DOTFILE, dotfileWriter.buildDotfile());
+    String planDotFile = dotfileWriter.buildDotfile();
+    exec.setPlanDotFile(planDotFile);
+    conf.set(PlanningParameters.PIPELINE_PLAN_DOTFILE, planDotFile);
 
     return exec;
   }
@@ -266,16 +272,19 @@ public class MSCRPlanner {
         assignment.put(v, prototype);
       }
     } else {
+      Set<Edge> usedEdges = Sets.newHashSet();
       for (Vertex g : gbks) {
         Set<NodePath> inputs = Sets.newHashSet();
         for (Edge e : g.getIncomingEdges()) {
           inputs.addAll(e.getNodePaths());
+          usedEdges.add(e);
         }
         JobPrototype prototype = JobPrototype.createMapReduceJob(
             (PGroupedTableImpl) g.getPCollection(), inputs, pipeline.createTempPath());
         assignment.put(g, prototype);
         for (Edge e : g.getIncomingEdges()) {
           assignment.put(e.getHead(), prototype);
+          usedEdges.add(e);
         }
         HashMultimap<Target, NodePath> outputPaths = HashMultimap.create();
         for (Edge e : g.getOutgoingEdges()) {
@@ -284,6 +293,7 @@ public class MSCRPlanner {
             outputPaths.putAll(t, e.getNodePaths());
           }
           assignment.put(output, prototype);
+          usedEdges.add(e);
         }
         prototype.addReducePaths(outputPaths);
       }
@@ -299,7 +309,7 @@ public class MSCRPlanner {
         boolean vertexHasUnassignedIncomingEdges = false;
         if (v.isOutput()) {
           for (Edge e : v.getIncomingEdges()) {
-            if (!assignment.containsKey(e.getHead())) {
+            if (!usedEdges.contains(e)) {
               vertexHasUnassignedIncomingEdges = true;
             }
           }
@@ -308,7 +318,7 @@ public class MSCRPlanner {
         if (v.isOutput() && (vertexHasUnassignedIncomingEdges || !assignment.containsKey(v))) {
           orphans.add(v);
           for (Edge e : v.getIncomingEdges()) {
-            if (vertexHasUnassignedIncomingEdges && assignment.containsKey(e.getHead())) {
+            if (vertexHasUnassignedIncomingEdges && usedEdges.contains(e)) {
               // We've already dealt with this incoming edge
               continue;
             }

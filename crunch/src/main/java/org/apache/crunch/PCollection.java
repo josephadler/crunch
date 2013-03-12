@@ -36,6 +36,12 @@ public interface PCollection<S> {
 
   /**
    * Returns a {@code PCollection} instance that acts as the union of this
+   * {@code PCollection} and the given {@code PCollection}.
+   */
+  PCollection<S> union(PCollection<S> other);
+  
+  /**
+   * Returns a {@code PCollection} instance that acts as the union of this
    * {@code PCollection} and the input {@code PCollection}s.
    */
   PCollection<S> union(PCollection<S>... collections);
@@ -135,6 +141,18 @@ public interface PCollection<S> {
    */
   PCollection<S> write(Target target);
 
+  /**
+   * Write the contents of this {@code PCollection} to the given {@code Target},
+   * using the given {@code Target.WriteMode} to handle existing
+   * targets.
+   * 
+   * @param target
+   *          The target
+   * @param writeMode
+   *          The rule for handling existing outputs at the target location
+   */
+  PCollection<S> write(Target target, Target.WriteMode writeMode);
+  
   /**
    * Returns a reference to the data set represented by this PCollection that
    * may be used by the client to read the data locally.
