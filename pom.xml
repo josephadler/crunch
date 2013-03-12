@@ -65,14 +65,14 @@ under the License.
               classpath. Additionally, please keep licensing information
               in NOTICE and LICENSE files up to date.
     -->
-    <guava.version>11.0.2</guava.version>
+    <guava.version>13.0.1</guava.version>
     <commons-io.version>2.1</commons-io.version>
     <commons-lang.version>2.4</commons-lang.version>
     <commons-codec.version>1.4</commons-codec.version>
     <commons-httpclient.version>3.0.1</commons-httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
-    <avro.version>1.7.2</avro.version>
     <commons-cli.version>1.2</commons-cli.version>
+    <avro.version>1.7.0</avro.version>
     <javassist.version>3.16.1-GA</javassist.version>
     <jackson.version>1.8.8</jackson.version>
     <protobuf-java.version>2.3.0</protobuf-java.version>
@@ -366,7 +366,7 @@ under the License.
         </property>
       </activation>
       <properties>
-        <hadoop.version>1.0.4-p1</hadoop.version>
+        <hadoop.version>1.0.3</hadoop.version>
         <hbase.version>0.90.4</hbase.version>
       </properties>
       <dependencyManagement>
@@ -515,13 +515,11 @@ under the License.
 
   <build>
     <plugins>
-      <!--
-       <plugin>
+      <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-       </plugin>
-     --> 
-     <plugin>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
         <inherited>false</inherited> 
@@ -607,7 +605,6 @@ under the License.
 
     <pluginManagement>
       <plugins>
-      <!--
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
@@ -623,7 +620,22 @@ under the License.
             <exclude>**/goal.txt</exclude>
             <exclude>**/target/generated-test-sources/**</exclude>
             <exclude>**/scripts/scrunch</exclude>
-            </excludes>
+            <exclude>examples/.project</exclude>
+            <exclude>examples/target/site/apidocs/package-list</exclude>
+            <exclude>examples/target/javadoc-bundle-options/javadoc-options-javadoc-resources.xml</exclude>
+            <exclude>examples/target/javadoc-bundle-options/package-list</exclude>
+            <exclude>examples/.settings/org.eclipse.jdt.core.prefs</exclude>
+            <exclude>examples/.classpath</exclude>
+            <exclude>bin/org/apache/crunch/types/CRUNCH-103.patch</exclude>
+            <exclude>scrunch/.project</exclude>
+            <exclude>scrunch/target/site/apidocs/package-list</exclude>
+            <exclude>scrunch/target/javadoc-bundle-options/javadoc-options-javadoc-resources.xml</exclude>
+            <exclude>scrunch/target/javadoc-bundle-options/package-list</exclude>
+            <exclude>scrunch/.settings/org.eclipse.jdt.core.prefs</exclude>
+            <exclude>scrunch/.classpath</exclude>
+            <exclude>/home/jadler/src/crunch/crunch/.checkstyle</exclude>
+            <exclude>/home/jadler/src/crunch/crunch/src/main/java/org/apache/crunch/types/CRUNCH-103.patch</exclude>
+          </excludes>
           </configuration>
           <executions>
             <execution>
@@ -635,7 +647,6 @@ under the License.
             </execution>
           </executions>
         </plugin>
-        -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
