@@ -20,6 +20,7 @@ package org.apache.crunch.hadoop.mapreduce.lib.jobcontrol;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -254,6 +255,7 @@ public class CrunchControlledJob {
         } else {
           this.state = State.FAILED;
           this.message = "Job failed!";
+          new Exception().printStackTrace(); // JA - remove me later
         }
       }
     } catch (IOException ioe) {
@@ -264,6 +266,8 @@ public class CrunchControlledJob {
           job.killJob();
         }
       } catch (IOException e) {
+        System.err.printf("nested IOException in CrunchControlledJob.checkRunningState\n"); // remove me later
+        throw e; // remove me later
       }
     }
   }
