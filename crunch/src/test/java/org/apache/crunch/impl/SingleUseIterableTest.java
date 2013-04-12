@@ -15,28 +15,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.exec;
+package org.apache.crunch.impl;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.List;
+
 import org.junit.Test;
 
-public class CrunchJobTest {
+import com.google.common.collect.Lists;
+
+public class SingleUseIterableTest {
 
   @Test
-  public void testExtractPartitionNumber() {
-    assertEquals(0, CrunchJob.extractPartitionNumber("out1-r-00000"));
-    assertEquals(10, CrunchJob.extractPartitionNumber("out2-r-00010"));
-    assertEquals(99999, CrunchJob.extractPartitionNumber("out3-r-99999"));
+  public void testIterator() {
+    List<Integer> values = Lists.newArrayList(1,2,3);
+    
+    SingleUseIterable<Integer> iterable = new SingleUseIterable<Integer>(values);
+
+    List<Integer> retrievedValues = Lists.newArrayList(iterable);
+    
+    assertEquals(values, retrievedValues);
+  }
+  
+  @Test(expected=IllegalStateException.class)
+  public void testIterator_MultipleCalls() {
+    List<Integer> values = Lists.newArrayList(1,2,3);
+    
+    SingleUseIterable<Integer> iterable = new SingleUseIterable<Integer>(values);
+
+    List<Integer> retrievedValues = Lists.newArrayList(iterable);
+
+    for (Integer n : iterable) {
+      
+    }
   }
 
-  @Test
-  public void testExtractPartitionNumber_WithSuffix() {
-    assertEquals(10, CrunchJob.extractPartitionNumber("out2-r-00010.avro"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testExtractPartitionNumber_MapOutputFile() {
-    CrunchJob.extractPartitionNumber("out1-m-00000");
-  }
 }

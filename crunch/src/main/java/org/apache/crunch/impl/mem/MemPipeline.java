@@ -51,8 +51,6 @@ import org.apache.hadoop.mapreduce.Counters;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 public class MemPipeline implements Pipeline {
 
@@ -66,6 +64,10 @@ public class MemPipeline implements Pipeline {
     return COUNTERS;
   }
   
+  public static void clearCounters() {
+    COUNTERS = new Counters();
+  }
+
   public static Pipeline getInstance() {
     return INSTANCE;
   }
@@ -218,7 +220,6 @@ public class MemPipeline implements Pipeline {
   @Override
   public PipelineExecution runAsync() {
     activeTargets.clear();
-    final ListenableFuture<PipelineResult> lf = Futures.immediateFuture(PipelineResult.EMPTY);
     return new PipelineExecution() {
       @Override
       public String getPlanDotFile() {
@@ -242,7 +243,7 @@ public class MemPipeline implements Pipeline {
 
       @Override
       public PipelineResult getResult() {
-        return PipelineResult.EMPTY;
+        return new PipelineResult(ImmutableList.of(new PipelineResult.StageResult("MemPipelineStage", COUNTERS)));
       }
 
       @Override
@@ -254,7 +255,7 @@ public class MemPipeline implements Pipeline {
   @Override
   public PipelineResult run() {
     activeTargets.clear();
-    return PipelineResult.EMPTY;
+    return new PipelineResult(ImmutableList.of(new PipelineResult.StageResult("MemPipelineStage", COUNTERS)));
   }
 
   @Override

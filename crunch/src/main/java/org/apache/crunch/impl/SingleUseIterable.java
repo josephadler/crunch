@@ -15,24 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.run;
+package org.apache.crunch.impl;
+
+import java.util.Iterator;
 
 /**
- * Parameters used during the runtime execution.
+ * Wrapper around a Reducer's input Iterable. Ensures that the
+ * {@link #iterator()} method is not called more than once.
  */
-public class RuntimeParameters {
+public class SingleUseIterable<T> implements Iterable<T> {
 
-  public static final String AGGREGATOR_BUCKETS = "crunch.aggregator.buckets";
+  private boolean used = false;
+  private Iterable<T> wrappedIterable;
 
-  public static final String DEBUG = "crunch.debug";
-
-  public static final String TMP_DIR = "crunch.tmp.dir";
-
-  public static final String LOG_JOB_PROGRESS = "crunch.log.job.progress";
-
-  public static final String CREATE_DIR = "mapreduce.jobcontrol.createdir.ifnotexist";
-
-  // Not instantiated
-  private RuntimeParameters() {
+  /**
+   * Instantiate around an Iterable that may only be used once.
+   * 
+   * @param toWrap iterable to wrap
+   */
+  public SingleUseIterable(Iterable<T> toWrap) {
+    this.wrappedIterable = toWrap;
   }
+
+  @Override
+  public Iterator<T> iterator() {
+    if (used) {
+      throw new IllegalStateException("iterator() can only be called once on this Iterable");
+    }
+    used = true;
+    return wrappedIterable.iterator();
+  }
+
 }

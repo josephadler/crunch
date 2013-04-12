@@ -15,24 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.run;
+package org.apache.crunch.impl.mr.exec;
 
-/**
- * Parameters used during the runtime execution.
- */
-public class RuntimeParameters {
+import static org.junit.Assert.assertEquals;
 
-  public static final String AGGREGATOR_BUCKETS = "crunch.aggregator.buckets";
+import org.junit.Test;
 
-  public static final String DEBUG = "crunch.debug";
+public class CrunchJobHooksTest {
 
-  public static final String TMP_DIR = "crunch.tmp.dir";
+  @Test
+  public void testExtractPartitionNumber() {
+    assertEquals(0, CrunchJobHooks.extractPartitionNumber("out1-r-00000"));
+    assertEquals(10, CrunchJobHooks.extractPartitionNumber("out2-r-00010"));
+    assertEquals(99999, CrunchJobHooks.extractPartitionNumber("out3-r-99999"));
+  }
 
-  public static final String LOG_JOB_PROGRESS = "crunch.log.job.progress";
+  @Test
+  public void testExtractPartitionNumber_WithSuffix() {
+    assertEquals(10, CrunchJobHooks.extractPartitionNumber("out2-r-00010.avro"));
+  }
 
-  public static final String CREATE_DIR = "mapreduce.jobcontrol.createdir.ifnotexist";
-
-  // Not instantiated
-  private RuntimeParameters() {
+  @Test(expected = IllegalArgumentException.class)
+  public void testExtractPartitionNumber_MapOutputFile() {
+    CrunchJobHooks.extractPartitionNumber("out1-m-00000");
   }
 }

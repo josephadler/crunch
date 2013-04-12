@@ -15,24 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.run;
+package org.apache.crunch.util;
+
+import org.apache.crunch.PCollection;
+import org.apache.hadoop.conf.Configuration;
 
 /**
- * Parameters used during the runtime execution.
+ *
  */
-public class RuntimeParameters {
-
-  public static final String AGGREGATOR_BUCKETS = "crunch.aggregator.buckets";
-
-  public static final String DEBUG = "crunch.debug";
-
-  public static final String TMP_DIR = "crunch.tmp.dir";
-
-  public static final String LOG_JOB_PROGRESS = "crunch.log.job.progress";
-
-  public static final String CREATE_DIR = "mapreduce.jobcontrol.createdir.ifnotexist";
-
-  // Not instantiated
-  private RuntimeParameters() {
+public class PartitionUtils {
+  public static final String BYTES_PER_REDUCE_TASK = "crunch.bytes.per.reduce.task";
+  public static final long DEFAULT_BYTES_PER_REDUCE_TASK = 1000L * 1000L * 1000L;
+  
+  public static <T> int getRecommendedPartitions(PCollection<T> pcollection, Configuration conf) {
+    long bytesPerTask = conf.getLong(BYTES_PER_REDUCE_TASK, DEFAULT_BYTES_PER_REDUCE_TASK);
+    return 1 + (int) (pcollection.getSize() / bytesPerTask);
   }
 }

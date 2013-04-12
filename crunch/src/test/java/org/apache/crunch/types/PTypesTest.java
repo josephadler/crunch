@@ -15,24 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.crunch.impl.mr.run;
+package org.apache.crunch.types;
 
-/**
- * Parameters used during the runtime execution.
- */
-public class RuntimeParameters {
+import static org.junit.Assert.assertEquals;
 
-  public static final String AGGREGATOR_BUCKETS = "crunch.aggregator.buckets";
+import java.util.UUID;
 
-  public static final String DEBUG = "crunch.debug";
+import org.apache.crunch.types.avro.AvroTypeFamily;
+import org.junit.Test;
 
-  public static final String TMP_DIR = "crunch.tmp.dir";
-
-  public static final String LOG_JOB_PROGRESS = "crunch.log.job.progress";
-
-  public static final String CREATE_DIR = "mapreduce.jobcontrol.createdir.ifnotexist";
-
-  // Not instantiated
-  private RuntimeParameters() {
+public class PTypesTest {
+  @Test
+  public void testUUID() throws Exception {
+    UUID uuid = UUID.randomUUID();
+    PType<UUID> ptype = PTypes.uuid(AvroTypeFamily.getInstance());
+    assertEquals(uuid, ptype.getInputMapFn().map(ptype.getOutputMapFn().map(uuid)));
   }
 }
