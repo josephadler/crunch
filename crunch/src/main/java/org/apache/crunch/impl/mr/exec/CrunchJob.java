@@ -119,6 +119,7 @@ public class CrunchJob extends CrunchControlledJob {
         } else {
           this.state = State.FAILED;
           this.message = "Job failed!";
+          new Exception().printStackTrace(); // JA - remove me later
         }
       } else { // still running
         if (job.getConfiguration().getBoolean(RuntimeParameters.LOG_JOB_PROGRESS, false)) {
@@ -146,6 +147,8 @@ public class CrunchJob extends CrunchControlledJob {
     } else {
       log.info("Error occurred starting job \"" + getJobName() + "\":");
       log.info(getMessage());
+      log.info("state of job was " + this.state.toString() + "\n");
+      this.state = State.FAILED;
     }
   }
 
