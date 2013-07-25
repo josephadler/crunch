@@ -27,7 +27,7 @@ under the License.
 
   <groupId>org.apache.crunch</groupId>
   <artifactId>crunch-parent</artifactId>
-  <version>0.6.0-SNAPSHOT</version>
+  <version>0.8.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Apache Crunch</name>
@@ -44,7 +44,7 @@ under the License.
   </prerequisites>
 
   <modules>
-    <module>crunch</module>
+    <module>crunch-core</module>
     <module>crunch-hbase</module>
     <module>crunch-test</module>
     <module>crunch-contrib</module>
@@ -72,10 +72,10 @@ under the License.
     <commons-httpclient.version>3.0.1</commons-httpclient.version>
     <commons-logging.version>1.1.1</commons-logging.version>
     <commons-cli.version>1.2</commons-cli.version>
-    <avro.version>1.7.0</avro.version>
+    <avro.version>1.7.4</avro.version>
     <javassist.version>3.16.1-GA</javassist.version>
     <jackson.version>1.8.8</jackson.version>
-    <protobuf-java.version>2.3.0</protobuf-java.version>
+    <protobuf-java.version>2.4.0a</protobuf-java.version>
     <libthrift.version>0.8.0</libthrift.version>
     <slf4j.version>1.4.3</slf4j.version>
     <log4j.version>1.2.15</log4j.version>
@@ -103,7 +103,7 @@ under the License.
     <dependencies>
       <dependency>
         <groupId>org.apache.crunch</groupId>
-        <artifactId>crunch</artifactId>
+        <artifactId>crunch-core</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -188,6 +188,22 @@ under the License.
           <exclusion>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro-ipc</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>trevni-core</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>trevni-avro</artifactId>
+        <version>${avro.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -342,8 +358,8 @@ under the License.
         </property>
       </activation>
       <properties>
-        <hadoop.version>1.0.3</hadoop.version>
-        <hbase.version>0.90.4</hbase.version>
+        <hadoop.version>1.1.2</hadoop.version>
+        <hbase.version>0.94.3</hbase.version>
       </properties>
       <dependencyManagement>
         <dependencies>
@@ -416,13 +432,12 @@ under the License.
         </property>
       </activation>
       <properties>
-        <hadoop.version>2.0.0-alpha</hadoop.version>
+        <hadoop.version>2.0.4-alpha</hadoop.version>
         <!-- NOTE: You must build HBase 0.94.1 from source using:
              mvn clean install -Dhadoop.profile=2.0
              for this to work. -->
         <hbase.version>0.94.1</hbase.version>
         <commons-lang.version>2.5</commons-lang.version>
-        <protobuf-java.version>2.4.0a</protobuf-java.version>
         <slf4j.version>1.6.1</slf4j.version>
       </properties>
       <dependencyManagement>
